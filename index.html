@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stephen Reyes – Time Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#1D9E75;--teal-d:#0F6E56;--teal-bg:#E1F5EE;--teal-mid:#5DCAA5;
+  --text:#111827;--muted:#6B7280;--hint:#9CA3AF;
+  --border:#E5E7EB;--bg:#F9FAFB;--white:#FFFFFF;
+  --red-bg:#FEF2F2;--red:#B91C1C;
+  --amber-bg:#FFFBEB;--amber:#B45309;
+  --blue-bg:#EFF6FF;--blue:#1D4ED8;
+  --radius:10px;--radius-sm:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+.app{display:flex;min-height:100vh;}
+.sidebar{width:230px;background:var(--white);border-right:1px solid var(--border);padding:1.25rem 0.75rem;display:flex;flex-direction:column;position:fixed;height:100vh;overflow-y:auto;}
+.main{margin-left:230px;flex:1;padding:2rem 2.5rem;max-width:980px;}
+.logo{padding:0 0.5rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:1rem;}
+.logo-name{font-size:14px;font-weight:600;}
+.logo-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--teal);margin-right:6px;vertical-align:middle;}
+.logo-email{font-size:11px;color:var(--muted);margin-top:2px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius-sm);font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:1px;transition:all 0.12s;border:none;background:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif;}
+.nav-item:hover{background:var(--bg);color:var(--text);}
+.nav-item.active{background:var(--teal-bg);color:var(--teal);font-weight:500;}
+.nav-item svg{flex-shrink:0;opacity:0.7;}
+.nav-item.active svg{opacity:1;}
+.sidebar-bottom{margin-top:auto;padding-top:1rem;border-top:1px solid var(--border);}
+.sb-info{font-size:11px;color:var(--muted);padding:0.4rem 0.5rem;}
+.sb-info span{display:block;font-weight:500;color:var(--text);font-size:12px;margin-top:1px;}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:10px;}
+.page-title{font-size:18px;font-weight:500;}
+.page-sub{font-size:13px;color:var(--muted);margin-top:1px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;border:none;font-weight:500;transition:all 0.12s;line-height:1;}
+.btn-primary{background:var(--teal);color:#fff;}
+.btn-primary:hover{background:var(--teal-d);}
+.btn-outline{background:var(--white);border:1px solid var(--border);color:var(--muted);}
+.btn-outline:hover{border-color:var(--teal);color:var(--teal);}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--muted);font-family:'DM Sans',sans-serif;}
+.btn-ghost:hover{border-color:var(--teal);color:var(--teal);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-add{background:var(--teal);color:#fff;width:100%;justify-content:center;padding:10px;margin-top:8px;font-size:13px;}
+.btn-add:hover{background:var(--teal-d);}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.75rem;}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;}
+.stat-label{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:8px;}
+.stat-value{font-size:24px;font-weight:500;letter-spacing:-0.02em;}
+.stat-value.teal{color:var(--teal);}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.card-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.card-title{font-size:14px;font-weight:500;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:500;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg);white-space:nowrap;}
+tbody td{padding:9px 14px;font-size:13px;vertical-align:middle;border-bottom:1px solid var(--border);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:#fafafa;}
+tfoot td{padding:10px 14px;font-size:12px;background:var(--bg);}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;}
+.badge-draft{background:#F3F4F6;color:#6B7280;}
+.badge-sent{background:var(--blue-bg);color:var(--blue);}
+.badge-paid{background:var(--teal-bg);color:var(--teal-d);}
+.badge-overdue{background:var(--red-bg);color:var(--red);}
+.badge-pending{background:var(--amber-bg);color:var(--amber);}
+.empty{text-align:center;padding:3.5rem 1rem;color:var(--muted);}
+.empty-icon{font-size:32px;margin-bottom:12px;opacity:0.4;}
+.empty p{font-size:13px;margin-bottom:1rem;}
+.entry-row-mini{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.entry-row-mini:last-child{border-bottom:none;}
+.period-pill{display:inline-block;font-size:10px;padding:2px 8px;background:var(--bg);border:1px solid var(--border);border-radius:100px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--text);color:#fff;padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;z-index:999;opacity:0;transform:translateY(8px);transition:all 0.2s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+/* Month selector */
+.month-selector{display:flex;align-items:center;gap:6px;}
+.month-selector select{padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:var(--white);outline:none;cursor:pointer;}
+.month-selector select:focus{border-color:var(--teal);}
+
+/* View toggle */
+.view-toggle{display:flex;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px;}
+.vt-btn{padding:4px 12px;border-radius:4px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--muted);cursor:pointer;transition:all 0.12s;}
+.vt-btn.active{background:var(--white);color:var(--teal);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+
+/* Calendar */
+.cal-wrap{padding:1.25rem;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:0.75rem;}
+.cal-day-header{font-size:11px;text-align:center;color:var(--muted);font-weight:500;padding:4px 0;text-transform:uppercase;letter-spacing:0.04em;}
+.cal-day{min-height:52px;border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:11px;background:var(--white);position:relative;cursor:default;}
+.cal-day.has-entry{background:var(--teal-bg);border-color:var(--teal-mid);cursor:pointer;}
+.cal-day.has-entry:hover{background:#c8eedd;}
+.cal-day.today{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal);}
+.cal-day.empty{background:transparent;border-color:transparent;}
+.cal-day .cal-num{font-weight:500;color:var(--muted);margin-bottom:2px;}
+.cal-day.has-entry .cal-num{color:var(--teal-d);}
+.cal-day .cal-hours{font-size:10px;color:var(--teal-d);font-weight:500;}
+.cal-day .cal-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);position:absolute;top:5px;right:6px;}
+
+/* Weekly rows */
+.week-row{display:grid;grid-template-columns:110px 1fr repeat(2,90px);gap:0;border-bottom:1px solid var(--border);}
+.week-row:last-child{border-bottom:none;}
+.week-row-hdr{grid-template-columns:110px 1fr repeat(2,90px);background:var(--bg);}
+.week-cell{padding:9px 14px;font-size:13px;}
+.week-cell.muted{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;font-weight:500;}
+.week-cell.right{text-align:right;}
+.week-group-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;padding:8px 14px 4px;background:var(--bg);border-bottom:1px solid var(--border);}
+
+/* Day detail */
+.day-detail-entry{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;}
+.day-detail-entry:last-child{border-bottom:none;}
+.day-time{font-size:12px;color:var(--muted);white-space:nowrap;min-width:90px;}
+.day-desc{font-size:13px;flex:1;}
+.day-hours{font-size:13px;font-weight:500;color:var(--teal);white-space:nowrap;}
+
+/* Invoice panel overlay */
+.inv-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;}
+.inv-panel{background:var(--white);border-radius:var(--radius);width:520px;max-width:100%;max-height:90vh;overflow-y:auto;}
+.inv-panel-header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.inv-panel-title{font-size:15px;font-weight:500;}
+.inv-close{background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;padding:2px 6px;}
+.inv-close:hover{color:var(--text);}
+.inv-panel-body{padding:1.5rem;}
+.inv-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.inv-row:last-child{border-bottom:none;}
+.inv-row-label{color:var(--muted);}
+.inv-row-val{font-weight:500;}
+.inv-actions{display:flex;gap:8px;padding:1rem 1.5rem;border-top:1px solid var(--border);justify-content:flex-end;}
+
+/* Printable invoice */
+@media print{
+  .sidebar,.no-print{display:none!important;}
+  .main{margin-left:0!important;padding:0!important;}
+  .inv-overlay{position:static;background:none;padding:0;}
+  .inv-panel{width:100%;max-height:none;border-radius:0;border:none;box-shadow:none;}
+}
+
+/* Responsive */
+@media(max-width:700px){
+  .sidebar{display:none;}
+  .main{margin-left:0;padding:1rem;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="toast" id="toast"></div>
+<script>
+const PROFILE = { name:'Stephen Reyes', email:'stephen.reyes.va@gmail.com', role:'E-Commerce Virtual Assistant', rate:5 };
+const CLIENT  = { name:'Margarite', company:'All Riot Ltd.' };
+const PAYMENT = { paypal:'stephen.reyes.va@gmail.com' };
+const RATE    = 5;
+const STATUSES = ['draft','sent','pending','paid','overdue'];
+const STATUS_LABELS = {draft:'Draft',sent:'Sent',pending:'Pending',paid:'Paid',overdue:'Overdue'};
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+let page = 'dashboard';
+let data = { entries:[], invoices:[] };
+let selectedInvoice = null;
+
+// View state
+let tsView = 'monthly'; // 'daily','weekly','monthly'
+let tsMonth = new Date().getMonth();
+let tsYear  = new Date().getFullYear();
+let dashMonth = new Date().getMonth();
+let dashYear  = new Date().getFullYear();
+let selectedCalDay = null;
+
+function fmt(n){ return '$'+parseFloat(n||0).toFixed(2); }
+function fmtDate(d){ if(!d)return'—'; const dt=new Date(d+'T00:00:00'); return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function totalHours(arr){ return arr.reduce((s,e)=>s+(parseFloat(e.hours)||0),0); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); }
+function getMonthEntries(m,y){ return data.entries.filter(e=>{ if(!e.date)return false; const d=new Date(e.date+'T00:00:00'); return d.getMonth()===m&&d.getFullYear()===y; }); }
+function getDayEntries(dateStr){ return data.entries.filter(e=>e.date===dateStr); }
+
+function loadData(){
+  const r=localStorage.getItem('sr_tracker_v1');
+  if(r){ try{ data=JSON.parse(r); }catch(e){} }
+}
+
+// ── Render ────────────────────────────────────────────────────
+function render(){
+  const root=document.getElementById('root');
+  root.innerHTML='';
+  root.appendChild(buildApp());
+}
+
+// ── App shell ─────────────────────────────────────────────────
+function buildApp(){
+  const app=document.createElement('div'); app.className='app';
+  app.appendChild(buildSidebar());
+  const main=document.createElement('div'); main.className='main';
+  const pages={dashboard:buildDashboard,timesheet:buildTimesheet,invoices:buildInvoices};
+  main.appendChild((pages[page]||buildDashboard)());
+  app.appendChild(main);
+  if(selectedInvoice) app.appendChild(buildInvoicePanel(selectedInvoice));
+  return app;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────
+function buildSidebar(){
+  const sb=document.createElement('div'); sb.className='sidebar';
+  const logo=document.createElement('div'); logo.className='logo';
+  logo.innerHTML=`<div class="logo-name"><span class="logo-dot"></span>Stephen Reyes</div><div class="logo-email">stephen.reyes.va@gmail.com</div>`;
+  sb.appendChild(logo);
+  [
+    {id:'dashboard',label:'Dashboard',icon:'<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'},
+    {id:'timesheet',label:'Timesheet',icon:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'},
+    {id:'invoices',label:'Invoices',icon:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'},
+  ].forEach(item=>{
+    const btn=document.createElement('button'); btn.className='nav-item'+(page===item.id?' active':'');
+    btn.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${item.icon}</svg>${item.label}`;
+    btn.addEventListener('click',()=>{ page=item.id; render(); }); sb.appendChild(btn);
+  });
+  const bot=document.createElement('div'); bot.className='sidebar-bottom';
+  bot.innerHTML=`
+    <div class="sb-info">Billing to<span>${CLIENT.name}</span><span style="font-weight:400;color:var(--muted)">${CLIENT.company}</span></div>
+    <div class="sb-info" style="margin-top:2px">Payment<span>PayPal</span><span style="font-weight:400;color:var(--muted);font-size:11px">${PAYMENT.paypal}</span></div>`;
+  const addBtn=document.createElement('button'); addBtn.className='btn btn-add no-print';
+  addBtn.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add New Record`;
+  addBtn.addEventListener('click',()=>{ window.location.href='admin.html'; });
+  bot.appendChild(addBtn);
+  sb.appendChild(bot); return sb;
+}
+
+// ── Dashboard ─────────────────────────────────────────────────
+function buildDashboard(){
+  const div=document.createElement('div');
+
+  // Header with month selector
+  const hdr=document.createElement('div'); hdr.className='page-header';
+  const htxt=document.createElement('div');
+  htxt.innerHTML=`<div class="page-title">Dashboard</div><div class="page-sub">Monthly Summary</div>`;
+  hdr.appendChild(htxt);
+
+  // Month / year selectors
+  const ms=document.createElement('div'); ms.className='month-selector no-print';
+  const mSel=document.createElement('select');
+  MONTHS.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m; if(i===dashMonth)o.selected=true; mSel.appendChild(o); });
+  mSel.addEventListener('change',e=>{ dashMonth=parseInt(e.target.value); render(); });
+  const ySel=document.createElement('select');
+  const curY=new Date().getFullYear();
+  for(let y=curY-2;y<=curY;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===dashYear)o.selected=true; ySel.appendChild(o); }
+  ySel.addEventListener('change',e=>{ dashYear=parseInt(e.target.value); render(); });
+  ms.appendChild(mSel); ms.appendChild(ySel); hdr.appendChild(ms);
+  div.appendChild(hdr);
+
+  const mEntries=getMonthEntries(dashMonth,dashYear);
+  const allH=totalHours(data.entries), mH=totalHours(mEntries);
+  const unpaid=data.invoices.filter(i=>i.status!=='paid').reduce((s,i)=>s+(parseFloat(i.total)||0),0);
+
+  div.innerHTML+=`
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">${MONTHS[dashMonth]} ${dashYear} Hours</div><div class="stat-value teal">${mH.toFixed(1)}</div><div class="stat-sub">${fmt(mH*RATE)} earned</div></div>
+      <div class="stat-card"><div class="stat-label">Total Hours Logged</div><div class="stat-value">${allH.toFixed(1)}</div><div class="stat-sub">All time · ${fmt(allH*RATE)}</div></div>
+      <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value">${fmt(unpaid)}</div><div class="stat-sub">${data.invoices.filter(i=>i.status!=='paid').length} unpaid invoice(s)</div></div>
+    </div>`;
+
+  // Monthly entries breakdown
+  const card=document.createElement('div'); card.className='card';
+  card.innerHTML=`<div class="card-header"><div class="card-title">${MONTHS[dashMonth]} ${dashYear} — Time Entries</div></div>`;
+  const body=document.createElement('div'); body.style.padding='0 1.25rem';
+  const mSorted=[...mEntries].sort((a,b)=>b.date.localeCompare(a.date));
+  if(!mSorted.length){
+    body.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><p>No entries for ${MONTHS[dashMonth]} ${dashYear}.</p></div>`;
+  } else {
+    mSorted.forEach(e=>{ const r=document.createElement('div'); r.className='entry-row-mini'; r.innerHTML=`<div><span style="color:var(--muted);font-size:11px;margin-right:8px">${fmtDate(e.date)}</span>${e.description||'<span style="color:var(--hint)">No description</span>'}</div><div style="white-space:nowrap;color:var(--teal);font-weight:500">${fmt((parseFloat(e.hours)||0)*RATE)}<span style="color:var(--hint);font-weight:400;font-size:11px;margin-left:4px">${e.hours||0}h</span></div>`; body.appendChild(r); });
+    // Month total
+    const tot=document.createElement('div'); tot.style.cssText='padding:10px 0;display:flex;justify-content:space-between;font-size:13px;font-weight:500;border-top:1px solid var(--border);margin-top:4px;';
+    tot.innerHTML=`<span style="color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:0.06em">Month Total</span><span style="color:var(--teal)">${mH.toFixed(1)}h &nbsp;·&nbsp; ${fmt(mH*RATE)}</span>`;
+    body.appendChild(tot);
+  }
+  card.appendChild(body); div.appendChild(card);
+
+  // Invoice overview for month
+  const mInvs=data.invoices.filter(inv=>{ if(!inv.label)return false; return true; });
+  if(mInvs.length){
+    const ic=document.createElement('div'); ic.className='card'; ic.style.marginTop='1.25rem';
+    ic.innerHTML=`<div class="card-header"><div class="card-title">Invoice Overview</div></div>`;
+    const ib=document.createElement('div'); ib.style.padding='0 1.25rem';
+    [...data.invoices].reverse().slice(0,6).forEach(inv=>{ const r=document.createElement('div'); r.className='entry-row-mini'; r.innerHTML=`<div>${inv.number}<span class="period-pill">${inv.label||'—'}</span></div><div style="display:flex;align-items:center;gap:10px"><span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span><span style="font-weight:500">${fmt(inv.total||0)}</span></div>`; ib.appendChild(r); });
+    ic.appendChild(ib); div.appendChild(ic);
+  }
+  return div;
+}
+
+// ── Timesheet ─────────────────────────────────────────────────
+function buildTimesheet(){
+  const div=document.createElement('div');
+
+  // Header
+  const hdr=document.createElement('div'); hdr.className='page-header';
+  const htxt=document.createElement('div');
+  htxt.innerHTML=`<div class="page-title">Timesheet</div><div class="page-sub">Rate: $${RATE}/hr</div>`;
+  hdr.appendChild(htxt);
+
+  // Controls row
+  const ctrl=document.createElement('div'); ctrl.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+
+  // View toggle
+  const tog=document.createElement('div'); tog.className='view-toggle no-print';
+  ['daily','weekly','monthly'].forEach(v=>{
+    const b=document.createElement('button'); b.className='vt-btn'+(tsView===v?' active':'');
+    b.textContent=v.charAt(0).toUpperCase()+v.slice(1);
+    b.addEventListener('click',()=>{ tsView=v; selectedCalDay=null; render(); });
+    tog.appendChild(b);
+  });
+  ctrl.appendChild(tog);
+
+  // Month selector
+  const ms=document.createElement('div'); ms.className='month-selector no-print';
+  const mSel=document.createElement('select');
+  MONTHS.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m; if(i===tsMonth)o.selected=true; mSel.appendChild(o); });
+  mSel.addEventListener('change',e=>{ tsMonth=parseInt(e.target.value); selectedCalDay=null; render(); });
+  const ySel=document.createElement('select');
+  const curY=new Date().getFullYear();
+  for(let y=curY-2;y<=curY;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===tsYear)o.selected=true; ySel.appendChild(o); }
+  ySel.addEventListener('change',e=>{ tsYear=parseInt(e.target.value); selectedCalDay=null; render(); });
+  ms.appendChild(mSel); ms.appendChild(ySel); ctrl.appendChild(ms);
+
+  hdr.appendChild(ctrl);
+  div.appendChild(hdr);
+
+  if(tsView==='monthly') div.appendChild(buildCalendar());
+  else if(tsView==='weekly') div.appendChild(buildWeeklyView());
+  else div.appendChild(buildDailyView());
+
+  return div;
+}
+
+function buildCalendar(){
+  const wrap=document.createElement('div'); wrap.className='card';
+  const hdr=document.createElement('div'); hdr.className='card-header';
+  const mEntries=getMonthEntries(tsMonth,tsYear);
+  const mH=totalHours(mEntries);
+  hdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear}</div><div style="font-size:12px;color:var(--muted)">${mH.toFixed(1)}h &nbsp;·&nbsp; ${fmt(mH*RATE)}</div>`;
+  wrap.appendChild(hdr);
+
+  const cal=document.createElement('div'); cal.className='cal-wrap';
+
+  // Day headers
+  const grid=document.createElement('div'); grid.className='cal-grid';
+  DAYS.forEach(d=>{ const dh=document.createElement('div'); dh.className='cal-day-header'; dh.textContent=d; grid.appendChild(dh); });
+
+  // Build entry map by date
+  const entryMap={};
+  mEntries.forEach(e=>{ if(!entryMap[e.date])entryMap[e.date]=[]; entryMap[e.date].push(e); });
+
+  const firstDay=new Date(tsYear,tsMonth,1).getDay();
+  const daysInMonth=new Date(tsYear,tsMonth+1,0).getDate();
+  const today=new Date().toISOString().slice(0,10);
+
+  // Empty leading cells
+  for(let i=0;i<firstDay;i++){ const ec=document.createElement('div'); ec.className='cal-day empty'; grid.appendChild(ec); }
+
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayEntries=entryMap[dateStr]||[];
+    const hasEntry=dayEntries.length>0;
+    const hours=totalHours(dayEntries);
+    const cell=document.createElement('div');
+    cell.className='cal-day'+(hasEntry?' has-entry':'')+(dateStr===today?' today':'');
+    cell.innerHTML=`<div class="cal-num">${d}</div>${hasEntry?`<div class="cal-hours">${hours.toFixed(1)}h</div><div class="cal-dot"></div>`:''}`;
+    if(hasEntry){
+      cell.title=`${dateStr}: ${hours}h — click for details`;
+      cell.addEventListener('click',()=>{ tsView='daily'; selectedCalDay=dateStr; render(); });
+    }
+    grid.appendChild(cell);
+  }
+
+  cal.appendChild(grid);
+  wrap.appendChild(cal);
+  return wrap;
+}
+
+function buildWeeklyView(){
+  const mEntries=getMonthEntries(tsMonth,tsYear);
+  const mH=totalHours(mEntries);
+
+  // Group by week
+  const weeks={};
+  mEntries.forEach(e=>{
+    const d=new Date(e.date+'T00:00:00');
+    const weekStart=new Date(d); weekStart.setDate(d.getDate()-d.getDay());
+    const wk=weekStart.toISOString().slice(0,10);
+    if(!weeks[wk])weeks[wk]=[];
+    weeks[wk].push(e);
+  });
+
+  const div=document.createElement('div'); div.className='card';
+  const hdr=document.createElement('div'); hdr.className='card-header';
+  hdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear} — Weekly</div><div style="font-size:12px;color:var(--muted)">${mH.toFixed(1)}h &nbsp;·&nbsp; ${fmt(mH*RATE)}</div>`;
+  div.appendChild(hdr);
+
+  const wkeys=Object.keys(weeks).sort();
+  if(!wkeys.length){
+    div.innerHTML+=`<div class="empty"><div class="empty-icon">📅</div><p>No entries for this month.</p></div>`;
+    return div;
+  }
+
+  const body=document.createElement('div');
+  // header row
+  const hr=document.createElement('div'); hr.className='week-row week-row-hdr';
+  hr.innerHTML=`<div class="week-cell muted">Week</div><div class="week-cell muted">Description</div><div class="week-cell muted right">Hours</div><div class="week-cell muted right">Amount</div>`;
+  body.appendChild(hr);
+
+  wkeys.forEach(wk=>{
+    const entries=weeks[wk];
+    const wkH=totalHours(entries);
+    const wStart=new Date(wk+'T00:00:00'); const wEnd=new Date(wStart); wEnd.setDate(wStart.getDate()+6);
+    const wLabel=`${wStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})}–${wEnd.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+
+    const grp=document.createElement('div'); grp.className='week-group-label'; grp.textContent=wLabel;
+    body.appendChild(grp);
+
+    entries.sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+      const row=document.createElement('div'); row.className='week-row';
+      row.innerHTML=`<div class="week-cell" style="color:var(--muted);font-size:12px">${fmtDate(e.date)}</div><div class="week-cell">${e.description||'<span style="color:var(--hint)">—</span>'}</div><div class="week-cell right">${e.hours||0}h</div><div class="week-cell right" style="color:var(--teal);font-weight:500">${fmt((parseFloat(e.hours)||0)*RATE)}</div>`;
+      body.appendChild(row);
+    });
+
+    const tot=document.createElement('div'); tot.className='week-row'; tot.style.background='var(--bg)';
+    tot.innerHTML=`<div class="week-cell" style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em">Week Total</div><div class="week-cell"></div><div class="week-cell right" style="font-weight:500">${wkH.toFixed(1)}h</div><div class="week-cell right" style="font-weight:500;color:var(--teal)">${fmt(wkH*RATE)}</div>`;
+    body.appendChild(tot);
+  });
+
+  // Month total
+  const mt=document.createElement('div'); mt.className='week-row'; mt.style.cssText='background:var(--teal-bg);border-top:2px solid var(--teal-mid);';
+  mt.innerHTML=`<div class="week-cell" style="font-size:11px;color:var(--teal-d);text-transform:uppercase;letter-spacing:0.05em;font-weight:600">Month Total</div><div class="week-cell"></div><div class="week-cell right" style="font-weight:600;color:var(--teal-d)">${mH.toFixed(1)}h</div><div class="week-cell right" style="font-weight:600;color:var(--teal-d)">${fmt(mH*RATE)}</div>`;
+  body.appendChild(mt);
+
+  div.appendChild(body);
+  return div;
+}
+
+function buildDailyView(){
+  const div=document.createElement('div');
+
+  // If a specific day is selected from calendar click
+  if(selectedCalDay){
+    const entries=getDayEntries(selectedCalDay);
+    const card=document.createElement('div'); card.className='card';
+    const hdr=document.createElement('div'); hdr.className='card-header';
+    const dH=totalHours(entries);
+    hdr.innerHTML=`<div class="card-title">${fmtDate(selectedCalDay)}</div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--muted)">${dH.toFixed(1)}h &nbsp;·&nbsp; ${fmt(dH*RATE)}</span><button class="btn btn-outline btn-sm no-print" id="back-cal">← All days</button></div>`;
+    card.appendChild(hdr);
+    if(!entries.length){
+      card.innerHTML+=`<div class="empty"><div class="empty-icon">⏱</div><p>No entries for this day.</p></div>`;
+    } else {
+      entries.forEach(e=>{
+        const row=document.createElement('div'); row.className='day-detail-entry';
+        const timeIn=e.timeIn||'—'; const timeOut=e.timeOut||'—';
+        row.innerHTML=`<div class="day-time">${timeIn} – ${timeOut}</div><div class="day-desc">${e.description||'<span style="color:var(--hint)">No description</span>'}</div><div class="day-hours">${e.hours||0}h<br><span style="font-size:11px;color:var(--hint);font-weight:400">${fmt((parseFloat(e.hours)||0)*RATE)}</span></div>`;
+        card.appendChild(row);
+      });
+    }
+    div.appendChild(card);
+    setTimeout(()=>{ const b=document.getElementById('back-cal'); if(b) b.addEventListener('click',()=>{ selectedCalDay=null; render(); }); },0);
+    return div;
+  }
+
+  // All days in month with entries
+  const mEntries=getMonthEntries(tsMonth,tsYear);
+  const byDay={};
+  mEntries.forEach(e=>{ if(!byDay[e.date])byDay[e.date]=[]; byDay[e.date].push(e); });
+  const days=Object.keys(byDay).sort().reverse();
+
+  const card=document.createElement('div'); card.className='card';
+  const hdr=document.createElement('div'); hdr.className='card-header';
+  const mH=totalHours(mEntries);
+  hdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear} — Daily Detail</div><div style="font-size:12px;color:var(--muted)">${mH.toFixed(1)}h &nbsp;·&nbsp; ${fmt(mH*RATE)}</div>`;
+  card.appendChild(hdr);
+
+  if(!days.length){
+    card.innerHTML+=`<div class="empty"><div class="empty-icon">📅</div><p>No entries for this month.</p></div>`;
+  } else {
+    days.forEach(dateStr=>{
+      const entries=byDay[dateStr];
+      const dH=totalHours(entries);
+      const dayHdr=document.createElement('div'); dayHdr.className='week-group-label';
+      dayHdr.innerHTML=`${fmtDate(dateStr)} <span style="font-weight:400;color:var(--teal);margin-left:8px">${dH.toFixed(1)}h · ${fmt(dH*RATE)}</span>`;
+      card.appendChild(dayHdr);
+      entries.forEach(e=>{
+        const row=document.createElement('div'); row.className='day-detail-entry';
+        const timeIn=e.timeIn||'—'; const timeOut=e.timeOut||'—';
+        row.innerHTML=`<div class="day-time">${timeIn} – ${timeOut}</div><div class="day-desc">${e.description||'<span style="color:var(--hint)">No description</span>'}</div><div class="day-hours">${e.hours||0}h<br><span style="font-size:11px;color:var(--hint);font-weight:400">${fmt((parseFloat(e.hours)||0)*RATE)}</span></div>`;
+        card.appendChild(row);
+      });
+    });
+  }
+  div.appendChild(card);
+  return div;
+}
+
+// ── Invoices ─────────────────────────────────────────────────
+function buildInvoices(){
+  const div=document.createElement('div');
+  const hdr=document.createElement('div'); hdr.className='page-header';
+  hdr.innerHTML=`<div><div class="page-title">Invoices</div><div class="page-sub">${data.invoices.length} invoice(s) · ${data.invoices.filter(i=>i.status==='paid').length} paid</div></div>`;
+
+  // Print all button
+  const pb=document.createElement('button'); pb.className='btn btn-outline btn-sm no-print';
+  pb.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print / Download`;
+  pb.addEventListener('click',()=>window.print());
+  hdr.appendChild(pb);
+  div.appendChild(hdr);
+
+  const card=document.createElement('div'); card.className='card';
+  if(!data.invoices.length){
+    card.innerHTML=`<div class="empty"><div class="empty-icon">🧾</div><p>No invoices yet.</p></div>`;
+  } else {
+    const wrap=document.createElement('div'); wrap.className='table-wrap';
+    const tbl=document.createElement('table');
+    tbl.innerHTML=`<thead><tr><th>Invoice</th><th>Period</th><th style="text-align:right">Hours</th><th style="text-align:right">Amount</th><th>Status</th><th>Remarks</th></tr></thead>`;
+    const tbody=document.createElement('tbody');
+    [...data.invoices].reverse().forEach(inv=>{
+      const tr=document.createElement('tr');
+      // Clickable invoice number
+      const numTd=document.createElement('td');
+      const numBtn=document.createElement('button');
+      numBtn.style.cssText='background:none;border:none;cursor:pointer;font-weight:500;color:var(--teal);font-family:inherit;font-size:13px;padding:0;text-decoration:underline;text-underline-offset:3px;';
+      numBtn.textContent=inv.number;
+      numBtn.addEventListener('click',()=>{ selectedInvoice=inv; render(); });
+      numTd.appendChild(numBtn);
+      tr.appendChild(numTd);
+      tr.innerHTML+=`<td style="white-space:nowrap;color:var(--muted);font-size:12px">${inv.label||'—'}</td><td style="text-align:right">${parseFloat(inv.hours||0).toFixed(1)}h</td><td style="text-align:right;font-weight:500;color:var(--teal)">${fmt(inv.total||0)}</td><td><span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span></td><td style="color:var(--muted)">${inv.notes||'—'}</td>`;
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody); wrap.appendChild(tbl); card.appendChild(wrap);
+  }
+  div.appendChild(card);
+  return div;
+}
+
+// ── Invoice Panel ─────────────────────────────────────────────
+function buildInvoicePanel(inv){
+  const ov=document.createElement('div'); ov.className='inv-overlay';
+  ov.addEventListener('click',e=>{ if(e.target===ov){ selectedInvoice=null; render(); }});
+  const panel=document.createElement('div'); panel.className='inv-panel';
+
+  const phdr=document.createElement('div'); phdr.className='inv-panel-header';
+  phdr.innerHTML=`<div class="inv-panel-title">Invoice ${inv.number}</div>`;
+  const closeBtn=document.createElement('button'); closeBtn.className='inv-close'; closeBtn.innerHTML='&times;';
+  closeBtn.addEventListener('click',()=>{ selectedInvoice=null; render(); });
+  phdr.appendChild(closeBtn); panel.appendChild(phdr);
+
+  const body=document.createElement('div'); body.className='inv-panel-body';
+  const rows=[
+    {label:'Invoice Number',val:inv.number},
+    {label:'Period',val:inv.label||'—'},
+    {label:'Hours',val:`${parseFloat(inv.hours||0).toFixed(1)} hrs`},
+    {label:'Rate',val:`$${RATE}/hr`},
+    {label:'Total Amount',val:fmt(inv.total||0)},
+    {label:'Status',val:`<span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span>`},
+    {label:'Remarks / Notes',val:inv.notes||'—'},
+  ];
+  rows.forEach(r=>{
+    const row=document.createElement('div'); row.className='inv-row';
+    row.innerHTML=`<span class="inv-row-label">${r.label}</span><span class="inv-row-val">${r.val}</span>`;
+    body.appendChild(row);
+  });
+
+  // Billing section
+  const billingSection=document.createElement('div'); billingSection.style.cssText='margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);';
+  billingSection.innerHTML=`<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:8px;font-weight:500;">Billing Information</div>`;
+  const brows=[
+    {label:'Billed by',val:PROFILE.name},
+    {label:'Billed to',val:`${CLIENT.name} · ${CLIENT.company}`},
+    {label:'Payment via',val:`PayPal — ${PAYMENT.paypal}`},
+  ];
+  brows.forEach(r=>{
+    const row=document.createElement('div'); row.className='inv-row';
+    row.innerHTML=`<span class="inv-row-label">${r.label}</span><span class="inv-row-val">${r.val}</span>`;
+    billingSection.appendChild(row);
+  });
+  body.appendChild(billingSection);
+  panel.appendChild(body);
+
+  const actions=document.createElement('div'); actions.className='inv-actions no-print';
+  const printBtn=document.createElement('button'); printBtn.className='btn btn-outline';
+  printBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print`;
+  printBtn.addEventListener('click',()=>window.print());
+  const dlBtn=document.createElement('button'); dlBtn.className='btn btn-primary';
+  dlBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download PDF`;
+  dlBtn.addEventListener('click',()=>{ toast('Tip: use Print → Save as PDF to download.'); window.print(); });
+  actions.appendChild(printBtn); actions.appendChild(dlBtn);
+  panel.appendChild(actions);
+
+  ov.appendChild(panel); return ov;
+}
+
+// ── Init ──────────────────────────────────────────────────────
+loadData();
+render();
+</script>
+</body>
+</html>
