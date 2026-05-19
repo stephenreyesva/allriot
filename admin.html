@@ -235,8 +235,9 @@ let modal = null;
 let loggedIn = false;
 let ghToken = '';
 let data = { entries:[], invoices:[] };
-let dashMonth = new Date().getMonth();
-let dashYear  = new Date().getFullYear();
+let dashMonth  = new Date().getMonth();
+let dashYear   = new Date().getFullYear();
+let dashPeriod = new Date().getDate() <= 15 ? 'A' : 'B';
 
 // ── Helpers ───────────────────────────────────────────────────
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -418,232 +419,161 @@ function buildSidebar(){
   sb.appendChild(bot); return sb;
 }
 
+// ── Dashboard helpers ─────────────────────────────────────────
+function getAdminBiMonthlyPeriod(m,y){
+  const lastDay=new Date(y,m+1,0).getDate();
+  if(dashPeriod==='A'){
+    return{label:'1–15',start:`${y}-${String(m+1).padStart(2,'0')}-01`,end:`${y}-${String(m+1).padStart(2,'0')}-15`};
+  } else {
+    return{label:`16–${lastDay}`,start:`${y}-${String(m+1).padStart(2,'0')}-16`,end:`${y}-${String(m+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`};
+  }
+}
+function getPeriodEntries(start,end){ return data.entries.filter(e=>{ if(!e.date)return false; return e.date>=start&&e.date<=end; }); }
+
 // ── Dashboard ─────────────────────────────────────────────────
 function buildDashboard(){
   const div=document.createElement('div');
   const now=new Date();
-
-  // Always default to current real month/year on first load
   if(dashMonth===null||dashMonth===undefined) dashMonth=now.getMonth();
   if(dashYear===null||dashYear===undefined)   dashYear=now.getFullYear();
 
-  // ── Header ──────────────────────────────────────────────────
+  // ── Header ───────────────────────────────────────────────────
+  const lastDayOfMonth=new Date(dashYear,dashMonth+1,0).getDate();
+  const periodLabel=dashPeriod==='A'?'1–15':'16–'+lastDayOfMonth;
   const hdr=document.createElement('div'); hdr.className='page-header';
   const htxt=document.createElement('div');
-  htxt.innerHTML=`<div class="page-title">Dashboard</div><div class="page-sub">${MONTHS[dashMonth]} ${dashYear}</div>`;
+  htxt.innerHTML=`<div class="page-title">Dashboard</div><div class="page-sub">${MONTHS[dashMonth]} ${dashYear} · ${periodLabel}</div>`;
   hdr.appendChild(htxt);
 
   const ms=document.createElement('div'); ms.className='month-selector no-print';
-  ms.style.cssText='display:flex;gap:6px;align-items:center;';
-
-  const mSel=document.createElement('select'); mSel.className='form-select'; mSel.style.cssText='width:auto;padding:5px 8px;font-size:12px;';
+  // Period selector (1–15 / 16–end)
+  const pSel=document.createElement('select');
+  pSel.style.cssText='padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:"DM Sans",sans-serif;font-size:12px;color:var(--text);background:var(--white);outline:none;cursor:pointer;font-weight:500;';
+  [{val:'A',label:'1 – 15'},{val:'B',label:`16 – ${lastDayOfMonth}`}].forEach(p=>{ const o=document.createElement('option'); o.value=p.val; o.textContent=p.label; if(p.val===dashPeriod)o.selected=true; pSel.appendChild(o); });
+  pSel.addEventListener('change',e=>{ dashPeriod=e.target.value; render(); });
+  ms.appendChild(pSel);
+  const mSel=document.createElement('select');
   MONTHS.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m; if(i===dashMonth)o.selected=true; mSel.appendChild(o); });
   mSel.addEventListener('change',e=>{ dashMonth=parseInt(e.target.value); render(); });
-
-  const ySel=document.createElement('select'); ySel.className='form-select'; ySel.style.cssText='width:auto;padding:5px 8px;font-size:12px;';
+  const ySel=document.createElement('select');
   const curY=now.getFullYear();
   for(let y=curY-2;y<=curY+1;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===dashYear)o.selected=true; ySel.appendChild(o); }
   ySel.addEventListener('change',e=>{ dashYear=parseInt(e.target.value); render(); });
-
-  // Today button — jump back to current month
-  const todayBtn=document.createElement('button'); todayBtn.className='btn btn-outline btn-sm';
-  todayBtn.textContent='Today';
-  todayBtn.addEventListener('click',()=>{ dashMonth=now.getMonth(); dashYear=now.getFullYear(); render(); });
-
-  ms.appendChild(mSel); ms.appendChild(ySel); ms.appendChild(todayBtn);
-  hdr.appendChild(ms);
+  ms.appendChild(mSel); ms.appendChild(ySel); hdr.appendChild(ms);
   div.appendChild(hdr);
 
-  // ── Live data — always read fresh from data.entries ──────────
-  // Re-read every render so changes in timesheet instantly show here
-  const mEntries = data.entries.filter(e=>{
-    if(!e.date) return false;
-    const d=new Date(e.date+'T00:00:00');
-    return d.getMonth()===dashMonth && d.getFullYear()===dashYear;
-  });
-  const mH      = totalHours(mEntries);
-  const allH    = totalHours(data.entries);
-  const allUnpaid = data.invoices.filter(i=>i.status!=='paid').reduce((s,i)=>s+(parseFloat(i.total)||0),0);
-  const paidDates = getPaidDates();
+  // ── Data ─────────────────────────────────────────────────────
+  const period=getAdminBiMonthlyPeriod(dashMonth,dashYear);
+  const periodEntries=getPeriodEntries(period.start,period.end);
+  const mEntries=getMonthEntries(dashMonth,dashYear);
+  const periodH=totalHours(periodEntries);
+  const mH=totalHours(mEntries);
+  const unpaidInvs=data.invoices.filter(i=>i.status!=='paid');
+  const unpaidCount=unpaidInvs.length;
+  const unpaidAmt=unpaidInvs.reduce((s,i)=>s+(parseFloat(i.total)||0),0);
+  const paidDates=getPaidDates();
 
-  // ── Stats row ────────────────────────────────────────────────
+  // ── Stats row (same 3 cards as index.html + amounts) ─────────
   const sg=document.createElement('div'); sg.className='stats-grid';
-
-  const statData=[
-    { label:`${MONTHS[dashMonth]} ${dashYear} Hours`, value:mH.toFixed(2), sub:`${fmt(mH*RATE)} earned`, teal:true },
-    { label:'All-Time Hours', value:allH.toFixed(2), sub:`${fmt(allH*RATE)} total earned` },
-    { label:'Outstanding', value:fmt(allUnpaid), sub:`${data.invoices.filter(i=>i.status!=='paid').length} unpaid invoice(s)` },
-  ];
-  statData.forEach(s=>{
-    const c=document.createElement('div'); c.className='stat-card';
-    c.innerHTML=`<div class="stat-label">${s.label}</div><div class="stat-value${s.teal?' teal':''}">${s.value}</div><div class="stat-sub">${s.sub}</div>`;
-    sg.appendChild(c);
-  });
+  sg.innerHTML=`
+    <div class="stat-card">
+      <div class="stat-label">${MONTHS[dashMonth]} ${period.label} Hours</div>
+      <div class="stat-value teal">${periodH.toFixed(1)}</div>
+      <div class="stat-sub">bi-monthly period &nbsp;·&nbsp; ${fmt(periodH*RATE)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">${MONTHS[dashMonth]} ${dashYear} Total</div>
+      <div class="stat-value">${mH.toFixed(1)}</div>
+      <div class="stat-sub">full month hours &nbsp;·&nbsp; ${fmt(mH*RATE)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Outstanding Invoices</div>
+      <div class="stat-value${unpaidCount===0?' teal':''}">${unpaidCount}</div>
+      <div class="stat-sub">${unpaidCount===0?'All invoices paid ✓':fmt(unpaidAmt)+' outstanding'}</div>
+    </div>`;
   div.appendChild(sg);
 
-  // ── Bi-monthly summary strips ────────────────────────────────
-  const lastDay=new Date(dashYear,dashMonth+1,0).getDate();
-  const biPeriods=[
-    { label:`1\u201315`, start:`${dashYear}-${String(dashMonth+1).padStart(2,'0')}-01`, end:`${dashYear}-${String(dashMonth+1).padStart(2,'0')}-15` },
-    { label:`16\u2013${lastDay}`, start:`${dashYear}-${String(dashMonth+1).padStart(2,'0')}-16`, end:`${dashYear}-${String(dashMonth+1).padStart(2,'0')}-${lastDay}` },
-  ];
-  const bGrid=document.createElement('div'); bGrid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;';
-  biPeriods.forEach(p=>{
-    const pEntries=mEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
-    const pH=totalHours(pEntries);
-    // Find matching invoice for this half
-    const matchInv=data.invoices.find(inv=>{
-      if(!inv.label) return false;
-      const norm=s=>s.replace(/\u2013/g,'-').replace(/\s+/g,' ').trim();
-      return norm(inv.label)===norm(`${MONTHS[dashMonth]} ${p.label}, ${dashYear}`);
-    });
-    const statusBadge=matchInv
-      ?`<span class="badge badge-${matchInv.status||'draft'}" style="font-size:10px">${STATUS_LABELS[matchInv.status||'draft']}</span>`
-      :`<span style="font-size:11px;color:var(--hint)">No invoice</span>`;
-    const c=document.createElement('div'); c.className='stat-card';
-    c.style.cssText='cursor:'+(matchInv?'pointer':'default')+';transition:box-shadow 0.12s;';
-    c.innerHTML=`
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <div class="stat-label" style="margin-bottom:0">${MONTHS[dashMonth]} ${p.label}</div>
-        ${statusBadge}
-      </div>
-      <div class="stat-value teal" style="font-size:20px">${pH.toFixed(2)}h</div>
-      <div class="stat-sub">${fmt(pH*RATE)} &nbsp;·&nbsp; ${pEntries.length} entr${pEntries.length!==1?'ies':'y'}</div>`;
-    if(matchInv){
-      c.title=`Click to open ${matchInv.number}`;
-      c.addEventListener('mouseenter',()=>c.style.boxShadow='0 0 0 2px var(--teal)');
-      c.addEventListener('mouseleave',()=>c.style.boxShadow='none');
-      c.addEventListener('click',()=>{ invoiceDetailId=matchInv.id; page='invoices'; render(); });
-    }
-    bGrid.appendChild(c);
-  });
-  div.appendChild(bGrid);
-
-  // ── Time log — grouped by date, each date clickable ──────────
-  const card=document.createElement('div'); card.className='card';
+  // ── Period summary card (same structure as index.html + amounts) ──
+  const card=document.createElement('div'); card.className='card'; card.style.marginBottom='1.25rem';
   const chdr=document.createElement('div'); chdr.className='card-header';
-  chdr.innerHTML=`<div class="card-title">${MONTHS[dashMonth]} ${dashYear} — Time Log</div><div style="font-size:12px;color:var(--muted);font-weight:500">${mH.toFixed(2)}h &nbsp;·&nbsp; ${fmt(mH*RATE)}</div>`;
+  chdr.innerHTML=`<div class="card-title">${MONTHS[dashMonth]} ${dashYear} — ${period.label} Summary</div><div style="font-size:12px;color:var(--muted)">${periodH.toFixed(1)}h total &nbsp;·&nbsp; ${fmt(periodH*RATE)}</div>`;
   card.appendChild(chdr);
   const body=document.createElement('div'); body.style.padding='0 1.25rem';
-
-  const mSorted=[...mEntries].sort((a,b)=>b.date.localeCompare(a.date));
-  if(!mSorted.length){
-    body.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><p>No entries for ${MONTHS[dashMonth]} ${dashYear}.<br><small style="color:var(--hint)">Go to Timesheet to log your hours.</small></p></div>`;
+  const byDate={};
+  periodEntries.forEach(e=>{ if(!byDate[e.date])byDate[e.date]=[]; byDate[e.date].push(e); });
+  const sortedDates=Object.keys(byDate).sort();
+  if(!sortedDates.length){
+    body.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><p>No entries for ${MONTHS[dashMonth]} ${dashYear} (${period.label}).<br><small style="color:var(--hint)">Go to Timesheet to log your hours.</small></p></div>`;
   } else {
-    // Group by date
-    const byDate={};
-    mSorted.forEach(e=>{ if(!byDate[e.date])byDate[e.date]=[]; byDate[e.date].push(e); });
-
-    Object.keys(byDate).sort().reverse().forEach(dateStr=>{
+    sortedDates.forEach(dateStr=>{
       const dayEntries=byDate[dateStr];
       const dayH=totalHours(dayEntries);
       const isLocked=paidDates.has(dateStr);
+      const firstDesc=dayEntries[0].description||'';
+      const moreLabel=dayEntries.length>1?` <span style="color:var(--hint);font-size:11px">+${dayEntries.length-1} more</span>`:'';
 
-      const row=document.createElement('div'); row.className='entry-row-mini';
-      row.style.cssText='cursor:pointer;transition:background 0.1s;padding:10px 0;'+(isLocked?'background:#FFFBEB;':'');
+      const r=document.createElement('div'); r.className='entry-row-mini'; r.style.cursor='pointer';
+      r.title='Click to view entries for this day';
 
-      // Left: clickable date + description summary
-      const left=document.createElement('div'); left.style.cssText='display:flex;align-items:center;gap:8px;min-width:0;';
-
+      // Left: date link + description
+      const left=document.createElement('div'); left.style.cssText='display:flex;align-items:center;gap:8px;min-width:0;flex:1;';
       const dateBtn=document.createElement('button');
-      dateBtn.style.cssText=`background:none;border:none;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;padding:0;white-space:nowrap;text-decoration:underline;text-underline-offset:3px;color:${isLocked?'#92400E':'var(--teal)'};`;
+      dateBtn.style.cssText=`background:none;border:none;cursor:pointer;font-size:12px;font-family:inherit;font-weight:500;padding:0;white-space:nowrap;text-decoration:underline;text-underline-offset:3px;color:${isLocked?'#92400E':'var(--teal)'};`;
       dateBtn.textContent=fmtDate(dateStr);
-      dateBtn.title='Click to view entries for this day';
-      dateBtn.addEventListener('click',ev=>{
-        ev.stopPropagation();
-        // Sync timesheet month to match so day modal works correctly
-        tsMonth=new Date(dateStr+'T00:00:00').getMonth();
-        tsYear=new Date(dateStr+'T00:00:00').getFullYear();
-        openDayModal(dateStr);
-      });
+      dateBtn.addEventListener('click',ev=>{ ev.stopPropagation(); tsMonth=new Date(dateStr+'T00:00:00').getMonth(); tsYear=new Date(dateStr+'T00:00:00').getFullYear(); openDayModal(dateStr); });
+      left.appendChild(dateBtn);
+      if(isLocked){ const lp=document.createElement('span'); lp.style.cssText='font-size:9px;background:#FCD34D;color:#92400E;padding:1px 5px;border-radius:100px;font-weight:600;white-space:nowrap;'; lp.textContent='PAID'; left.appendChild(lp); }
+      const descEl=document.createElement('span'); descEl.style.cssText='color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      descEl.innerHTML=(firstDesc||'<span style="color:var(--hint)">—</span>')+moreLabel; left.appendChild(descEl);
 
-      if(isLocked){
-        const lockPill=document.createElement('span');
-        lockPill.style.cssText='font-size:9px;background:#FCD34D;color:#92400E;padding:1px 5px;border-radius:100px;font-weight:600;white-space:nowrap;';
-        lockPill.textContent='PAID';
-        left.appendChild(dateBtn); left.appendChild(lockPill);
-      } else {
-        left.appendChild(dateBtn);
-      }
+      // Right: amount + hours
+      const right=document.createElement('div'); right.style.cssText='white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0;';
+      right.innerHTML=`<span style="font-weight:600;color:${isLocked?'#92400E':'var(--teal)'}">${fmt(dayH*RATE)}</span><span style="color:var(--hint);font-size:11px">${dayH.toFixed(1)}h</span>`;
 
-      // Show descriptions summary
-      const allDescs=dayEntries.map(e=>e.description).filter(Boolean);
-      const descText=allDescs.length?allDescs[0]+(allDescs.length>1?` +${allDescs.length-1} more`:''):'No description';
-      const descSpan=document.createElement('span');
-      descSpan.style.cssText='color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px;';
-      descSpan.textContent=descText; descSpan.title=allDescs.join(' / ');
-      left.appendChild(descSpan);
-
-      // Right: earnings + hours
-      const right=document.createElement('div'); right.style.cssText='white-space:nowrap;display:flex;align-items:center;gap:6px;';
-      right.innerHTML=`<span style="font-weight:600;color:${isLocked?'#92400E':'var(--teal)'}">${fmt(dayH*RATE)}</span><span style="color:var(--hint);font-size:11px;">${dayH.toFixed(2)}h</span>`;
-
-      // Entries count pill if more than one
-      if(dayEntries.length>1){
-        const cnt=document.createElement('span');
-        cnt.style.cssText='font-size:10px;background:var(--bg);border:1px solid var(--border);padding:1px 6px;border-radius:100px;color:var(--muted);';
-        cnt.textContent=dayEntries.length+'×';
-        right.insertBefore(cnt, right.firstChild);
-      }
-
-      row.appendChild(left); row.appendChild(right);
-      row.addEventListener('click',()=>{
-        tsMonth=new Date(dateStr+'T00:00:00').getMonth();
-        tsYear=new Date(dateStr+'T00:00:00').getFullYear();
-        openDayModal(dateStr);
-      });
-      body.appendChild(row);
+      r.appendChild(left); r.appendChild(right);
+      r.addEventListener('click',()=>{ tsMonth=new Date(dateStr+'T00:00:00').getMonth(); tsYear=new Date(dateStr+'T00:00:00').getFullYear(); openDayModal(dateStr); });
+      body.appendChild(r);
     });
-
-    // Month total bar
-    const tot=document.createElement('div');
-    tot.style.cssText='padding:10px 0;display:flex;justify-content:space-between;align-items:center;font-size:13px;border-top:2px solid var(--border);margin-top:4px;';
-    tot.innerHTML=`<span style="color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:0.06em;font-weight:500">Month Total</span><span style="color:var(--teal);font-weight:600">${mH.toFixed(2)}h &nbsp;·&nbsp; ${fmt(mH*RATE)}</span>`;
+    const tot=document.createElement('div'); tot.style.cssText='padding:10px 0;display:flex;justify-content:space-between;font-size:13px;font-weight:500;border-top:1px solid var(--border);margin-top:4px;';
+    tot.innerHTML=`<span style="color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:0.06em">Period Total</span><span style="color:var(--teal)">${periodH.toFixed(1)}h &nbsp;·&nbsp; ${fmt(periodH*RATE)}</span>`;
     body.appendChild(tot);
   }
   card.appendChild(body); div.appendChild(card);
 
-  // ── Invoice overview — all invoices, clickable ────────────────
-  const allInvoicesSorted=[...data.invoices].reverse();
-  const ic=document.createElement('div'); ic.className='card'; ic.style.marginTop='1.25rem';
-  const ichdr=document.createElement('div'); ichdr.className='card-header';
-  ichdr.innerHTML=`<div class="card-title">All Invoices</div><div style="font-size:12px;color:var(--muted)">${data.invoices.filter(i=>i.status==='paid').length} paid &nbsp;·&nbsp; ${fmt(allUnpaid)} outstanding</div>`;
-  ic.appendChild(ichdr);
-
-  if(!allInvoicesSorted.length){
-    ic.innerHTML+=`<div class="empty"><div class="empty-icon">🧾</div><p>No invoices yet. Go to Invoices to create one.</p></div>`;
-  } else {
-    const ib=document.createElement('div'); ib.style.cssText='padding:0 1.25rem;';
-    allInvoicesSorted.forEach(inv=>{
+  // ── Invoice overview (same as index.html + amounts) ───────────
+  if(data.invoices.length){
+    const ic=document.createElement('div'); ic.className='card';
+    const ichdr=document.createElement('div'); ichdr.className='card-header';
+    ichdr.innerHTML=`<div class="card-title">Invoice Overview</div><div style="font-size:12px;color:var(--muted)">${data.invoices.length} invoice(s) · ${data.invoices.filter(i=>i.status==='paid').length} paid</div>`;
+    ic.appendChild(ichdr);
+    const ib=document.createElement('div'); ib.style.padding='0 1.25rem';
+    [...data.invoices].reverse().forEach(inv=>{
       const ppFee=calcPaypalFee(parseFloat(inv.subtotal||inv.total||0), inv.paypalFee);
       const grandTotal=parseFloat(inv.subtotal||inv.total||0)+ppFee;
-
-      const row=document.createElement('div'); row.className='entry-row-mini';
-      row.style.cssText='cursor:pointer;transition:background 0.1s;padding:10px 0;';
-      row.addEventListener('mouseenter',()=>row.style.background='var(--bg)');
-      row.addEventListener('mouseleave',()=>row.style.background='');
-
-      // Left: invoice number + period pill
-      const left=document.createElement('div'); left.style.cssText='display:flex;align-items:center;gap:6px;';
+      const r=document.createElement('div'); r.className='entry-row-mini'; r.style.cursor='pointer';
+      r.title='Click to view invoice details';
+      r.addEventListener('mouseenter',()=>r.style.background='var(--bg)');
+      r.addEventListener('mouseleave',()=>r.style.background='');
       const numBtn=document.createElement('button');
-      numBtn.style.cssText='background:none;border:none;cursor:pointer;font-weight:600;font-family:inherit;font-size:13px;padding:0;color:var(--teal);text-decoration:underline;text-underline-offset:3px;';
+      numBtn.style.cssText='background:none;border:none;cursor:pointer;font-weight:500;color:var(--teal);font-family:inherit;font-size:13px;padding:0;text-decoration:underline;text-underline-offset:3px;';
       numBtn.textContent=inv.number;
-      numBtn.title=`Click to open ${inv.number}`;
       numBtn.addEventListener('click',ev=>{ ev.stopPropagation(); invoiceDetailId=inv.id; page='invoices'; render(); });
+      const left=document.createElement('div'); left.style.cssText='display:flex;align-items:center;gap:6px;flex:1;min-width:0;';
+      left.appendChild(numBtn);
       const pill=document.createElement('span'); pill.className='period-pill'; pill.textContent=inv.label||'—';
-      left.appendChild(numBtn); left.appendChild(pill);
-
-      // Right: status badge + total
-      const right=document.createElement('div'); right.style.cssText='display:flex;align-items:center;gap:10px;';
-      right.innerHTML=`<span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span><span style="font-weight:600">${fmt(grandTotal)}</span>`;
-
-      row.appendChild(left); row.appendChild(right);
-      row.addEventListener('click',()=>{ invoiceDetailId=inv.id; page='invoices'; render(); });
-      ib.appendChild(row);
+      left.appendChild(pill);
+      const right=document.createElement('div'); right.style.cssText='display:flex;align-items:center;gap:8px;flex-shrink:0;';
+      right.innerHTML=`<span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span><span style="font-weight:500">${fmt(grandTotal)}</span>`;
+      r.appendChild(left); r.appendChild(right);
+      r.addEventListener('click',()=>{ invoiceDetailId=inv.id; page='invoices'; render(); });
+      ib.appendChild(r);
     });
-    ic.appendChild(ib);
+    ic.appendChild(ib); div.appendChild(ic);
+  } else {
+    const ic=document.createElement('div'); ic.className='card';
+    ic.innerHTML=`<div class="card-header"><div class="card-title">Invoice Overview</div></div><div class="empty"><div class="empty-icon">🧾</div><p>No invoices yet. Go to Invoices to create one.</p></div>`;
+    div.appendChild(ic);
   }
-  div.appendChild(ic);
   return div;
 }
 
