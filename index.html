@@ -348,7 +348,6 @@ let openAccordions = new Set();
 // ── Helpers ────────────────────────────────────────────────────
 function fmt(n){ return '$'+parseFloat(n||0).toFixed(2); }
 function fmtDate(d){ if(!d)return'—'; const dt=new Date(d+'T00:00:00'); return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
-function fmtTime(t){ if(!t) return '—'; const [h,m]=t.split(':'); const hr=parseInt(h); return `${hr%12||12}:${m} ${hr<12?'AM':'PM'}`; }
 function totalHours(arr){ return arr.reduce((s,e)=>s+(parseFloat(e.hours)||0),0); }
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); }
 function getMonthEntries(m,y){ return data.entries.filter(e=>{ if(!e.date)return false; const d=new Date(e.date+'T00:00:00'); return d.getMonth()===m&&d.getFullYear()===y; }); }
@@ -391,21 +390,38 @@ function printTimesheet(dateStr){
   printWithName(label+'-'+cs);
 }
 
-// ── Data ───────────────────────────────────────────────────────
-function loadData(){
-  const r=localStorage.getItem('sr_tracker_v1');
-  if(r){ try{ data=JSON.parse(r); }catch(e){} }
-  if(!data.comments) data.comments={};
+// ── Data — fetched live from GitHub (read-only client view) ────
+const GH_RAW = 'https://raw.githubusercontent.com/stephenreyesva/timetracker/main/data.json';
+let dataLoaded = false;
+let loadError  = false;
+
+async function loadData(){
+  try{
+    const res = await fetch(GH_RAW + '?t=' + Date.now()); // cache-bust
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    data = json;
+    if(!data.comments) data.comments = {};
+    if(!data.entries)  data.entries  = [];
+    if(!data.invoices) data.invoices = [];
+    dataLoaded = true;
+    loadError  = false;
+  } catch(e){
+    loadError = true;
+    console.warn('Could not fetch data.json:', e);
+  }
 }
+
 function saveComment(dateStr, text){
-  if(!data.comments) data.comments={};
-  data.comments[dateStr]=text;
-  localStorage.setItem('sr_tracker_v1',JSON.stringify(data));
+  // Client view is read-only — comments not supported
+  toast('Note: comments are not saved on the client view.');
 }
+
+// Auto-refresh every 5 minutes
+setInterval(()=>{ loadData().then(()=>render()); }, 5 * 60 * 1000);
 
 // ── Render ─────────────────────────────────────────────────────
 function render(){
-  loadData();
   const root=document.getElementById('root');
   root.innerHTML='';
   root.appendChild(buildApp());
@@ -416,6 +432,27 @@ function buildApp(){
   const app=document.createElement('div'); app.className='app';
   app.appendChild(buildSidebar());
   const main=document.createElement('div'); main.className='main';
+
+  // Live data status bar
+  const now=new Date();
+  const timeStr=now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  const statusBar=document.createElement('div');
+  statusBar.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--teal-bg);border:1px solid var(--teal-mid);border-radius:var(--radius-sm);margin-bottom:1.25rem;flex-wrap:wrap;gap:6px;';
+  statusBar.innerHTML=`
+    <span style="font-size:11px;color:var(--teal-d);display:flex;align-items:center;gap:5px;">
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--teal);display:inline-block;flex-shrink:0;"></span>
+      Live data · last loaded ${timeStr}
+    </span>`;
+  const refreshBtn=document.createElement('button');
+  refreshBtn.style.cssText='background:none;border:1px solid var(--teal-mid);border-radius:4px;color:var(--teal-d);font-family:inherit;font-size:11px;cursor:pointer;padding:2px 8px;display:flex;align-items:center;gap:4px;';
+  refreshBtn.innerHTML=`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5"/></svg> Refresh`;
+  refreshBtn.addEventListener('click',()=>{
+    refreshBtn.disabled=true; refreshBtn.textContent='Loading…';
+    loadData().then(()=>render());
+  });
+  statusBar.appendChild(refreshBtn);
+  main.appendChild(statusBar);
+
   const pages={dashboard:buildDashboard,timesheet:buildTimesheet,invoices:buildInvoices};
   main.appendChild((pages[page]||buildDashboard)());
   app.appendChild(main);
@@ -637,68 +674,8 @@ function buildTimesheet(){
   else                          screenWrap.appendChild(buildDailyView());
   div.appendChild(screenWrap);
 
-  // ── Detailed Log — hours only, latest first ──────────────────
-  const mEntriesForLog=getMonthEntries(tsMonth,tsYear);
-  if(mEntriesForLog.length){
-    div.appendChild(buildDetailedLogHours(mEntriesForLog));
-  }
-
   div.appendChild(buildPrintTable());
   return div;
-}
-
-// ── Detailed Log (hours only, no amounts) ─────────────────────
-function buildDetailedLogHours(mEntries){
-  const paidDates=getPaidDates();
-  const sorted=[...mEntries].sort((a,b)=>b.date.localeCompare(a.date)); // latest first
-  const monthH=totalHours(mEntries);
-  const card=document.createElement('div'); card.className='card'; card.style.marginTop='1.25rem';
-  const tblHdr=document.createElement('div'); tblHdr.className='card-header';
-  tblHdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear} — Detailed Log</div><div style="font-size:11px;color:var(--hint)">Latest first · paid entries are view-only</div>`;
-  card.appendChild(tblHdr);
-
-  const wrap=document.createElement('div'); wrap.className='table-wrap';
-  const tbl=document.createElement('table');
-  tbl.innerHTML=`<thead><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Description</th><th style="text-align:right">Hours</th><th></th></tr></thead>`;
-  const tbody=document.createElement('tbody');
-
-  let lastDate='';
-  sorted.forEach(e=>{
-    const isPaidEntry=paidDates.has(e.date);
-    const tr=document.createElement('tr'); tr.style.cursor='default';
-    if(e.date!==lastDate&&lastDate!=='') tr.style.borderTop='2px solid var(--border)';
-    lastDate=e.date;
-
-    // Date cell
-    const dateTd=document.createElement('td');
-    const dateSpan=document.createElement('span');
-    dateSpan.style.cssText=`font-weight:600;font-size:13px;white-space:nowrap;color:${isPaidEntry?'#92400E':'var(--teal)'};`;
-    dateSpan.textContent=fmtDate(e.date);
-    if(isPaidEntry){
-      const paidTag=document.createElement('span'); paidTag.style.cssText='font-size:9px;background:#FCD34D;color:#92400E;padding:1px 5px;border-radius:100px;margin-left:5px;font-weight:600;'; paidTag.textContent='PAID';
-      dateTd.appendChild(dateSpan); dateTd.appendChild(paidTag);
-    } else { dateTd.appendChild(dateSpan); }
-    tr.appendChild(dateTd);
-
-    tr.innerHTML+=`<td style="color:var(--muted);font-size:12px">${fmtTime(e.timeIn)}</td><td style="color:var(--muted);font-size:12px">${fmtTime(e.timeOut)}</td><td>${e.description||'<span style="color:var(--hint)">—</span>'}</td><td style="text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}">${parseFloat(e.hours||0).toFixed(1)}h</td>`;
-
-    // Actions: paid = view icon only; unpaid = view icon (no edit/delete on client side)
-    const td=document.createElement('td'); td.style.cssText='text-align:right;white-space:nowrap;';
-    if(isPaidEntry){
-      const viewBtn=document.createElement('button'); viewBtn.className='btn btn-outline btn-sm';
-      viewBtn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View`;
-      viewBtn.title='Paid — view only';
-      viewBtn.addEventListener('click',ev=>{ ev.stopPropagation(); /* could open day detail */ });
-      td.appendChild(viewBtn);
-    }
-    // No delete button for client view at all — client cannot modify
-    tr.appendChild(td); tbody.appendChild(tr);
-  });
-
-  const tf=document.createElement('tfoot');
-  tf.innerHTML=`<tr><td colspan="4" style="font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.06em">Month Total</td><td style="text-align:right;font-weight:600">${monthH.toFixed(1)}h</td><td></td></tr>`;
-  tbl.appendChild(tbody); tbl.appendChild(tf); wrap.appendChild(tbl); card.appendChild(wrap);
-  return card;
 }
 
 // ── Accordion helper — builds a single date group ─────────────
@@ -1216,8 +1193,28 @@ function buildInvoicePanel(inv){
 }
 
 // ── Init ───────────────────────────────────────────────────────
-loadData();
-render();
+// ── Init — load from GitHub then render ───────────────────────
+(async()=>{
+  // Show loading screen
+  const root=document.getElementById('root');
+  root.innerHTML=`
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--muted);font-family:'DM Sans',sans-serif;">
+      <div style="width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+      <div style="font-size:13px;">Loading timesheet data…</div>
+    </div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+  await loadData();
+  if(loadError){
+    root.innerHTML=`
+      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--muted);font-family:'DM Sans',sans-serif;text-align:center;padding:2rem;">
+        <div style="font-size:32px;">⚠️</div>
+        <div style="font-size:15px;font-weight:500;color:var(--text)">Could not load data</div>
+        <div style="font-size:13px;max-width:320px;">Unable to reach the data source. Please check your connection and <button onclick="location.reload()" style="background:none;border:none;color:var(--teal);cursor:pointer;font-family:inherit;font-size:13px;text-decoration:underline;padding:0;">try again</button>.</div>
+      </div>`;
+    return;
+  }
+  render();
+})();
 </script>
 </body>
 </html>
