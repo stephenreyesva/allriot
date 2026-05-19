@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stephen Reyes – Time Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#1D9E75;--teal-d:#0F6E56;--teal-bg:#E1F5EE;--teal-mid:#5DCAA5;
+  --text:#111827;--muted:#6B7280;--hint:#9CA3AF;
+  --border:#E5E7EB;--bg:#F9FAFB;--white:#FFFFFF;
+  --red-bg:#FEF2F2;--red:#B91C1C;
+  --amber-bg:#FFFBEB;--amber:#B45309;
+  --blue-bg:#EFF6FF;--blue:#1D4ED8;
+  --radius:10px;--radius-sm:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+.app{display:flex;min-height:100vh;}
+.sidebar{width:230px;background:var(--white);border-right:1px solid var(--border);padding:1.25rem 0.75rem;display:flex;flex-direction:column;position:fixed;height:100vh;overflow-y:auto;}
+.main{margin-left:230px;flex:1;padding:2rem 2.5rem;max-width:980px;}
+.logo{padding:0 0.5rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:1rem;}
+.logo-name{font-size:14px;font-weight:600;}
+.logo-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--teal);margin-right:6px;vertical-align:middle;}
+.logo-email{font-size:11px;color:var(--muted);margin-top:2px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius-sm);font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:1px;transition:all 0.12s;border:none;background:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif;}
+.nav-item:hover{background:var(--bg);color:var(--text);}
+.nav-item.active{background:var(--teal-bg);color:var(--teal);font-weight:500;}
+.nav-item svg{flex-shrink:0;opacity:0.7;}
+.nav-item.active svg{opacity:1;}
+.sidebar-bottom{margin-top:auto;padding-top:1rem;border-top:1px solid var(--border);}
+.sb-info{font-size:11px;color:var(--muted);padding:0.4rem 0.5rem;}
+.sb-info span{display:block;font-weight:500;color:var(--text);font-size:12px;margin-top:1px;}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:10px;}
+.page-title{font-size:18px;font-weight:500;}
+.page-sub{font-size:13px;color:var(--muted);margin-top:1px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;border:none;font-weight:500;transition:all 0.12s;line-height:1;}
+.btn-primary{background:var(--teal);color:#fff;}
+.btn-primary:hover{background:var(--teal-d);}
+.btn-outline{background:var(--white);border:1px solid var(--border);color:var(--muted);}
+.btn-outline:hover{border-color:var(--teal);color:var(--teal);}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--muted);font-family:'DM Sans',sans-serif;}
+.btn-ghost:hover{border-color:var(--teal);color:var(--teal);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.75rem;}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;}
+.stat-label{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:8px;}
+.stat-value{font-size:24px;font-weight:500;letter-spacing:-0.02em;}
+.stat-value.teal{color:var(--teal);}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.card-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.card-title{font-size:14px;font-weight:500;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:500;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg);white-space:nowrap;}
+tbody td{padding:9px 14px;font-size:13px;vertical-align:middle;border-bottom:1px solid var(--border);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:#fafafa;}
+tfoot td{padding:10px 14px;font-size:12px;background:var(--bg);}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;}
+.badge-draft{background:#F3F4F6;color:#6B7280;}
+.badge-sent{background:var(--blue-bg);color:var(--blue);}
+.badge-paid{background:var(--teal-bg);color:var(--teal-d);}
+.badge-overdue{background:var(--red-bg);color:var(--red);}
+.badge-pending{background:var(--amber-bg);color:var(--amber);}
+.empty{text-align:center;padding:3.5rem 1rem;color:var(--muted);}
+.empty-icon{font-size:32px;margin-bottom:12px;opacity:0.4;}
+.empty p{font-size:13px;margin-bottom:1rem;}
+.entry-row-mini{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.entry-row-mini:last-child{border-bottom:none;}
+.period-pill{display:inline-block;font-size:10px;padding:2px 8px;background:var(--bg);border:1px solid var(--border);border-radius:100px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--text);color:#fff;padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;z-index:999;opacity:0;transform:translateY(8px);transition:all 0.2s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+/* Month selector */
+.month-selector{display:flex;align-items:center;gap:6px;}
+.month-selector select{padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:var(--white);outline:none;cursor:pointer;}
+.month-selector select:focus{border-color:var(--teal);}
+
+/* View toggle */
+.view-toggle{display:flex;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px;}
+.vt-btn{padding:4px 12px;border-radius:4px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--muted);cursor:pointer;transition:all 0.12s;}
+.vt-btn.active{background:var(--white);color:var(--teal);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+
+/* Calendar */
+.cal-wrap{padding:1.25rem;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:0.75rem;}
+.cal-day-header{font-size:11px;text-align:center;color:var(--muted);font-weight:500;padding:4px 0;text-transform:uppercase;letter-spacing:0.04em;}
+.cal-day{min-height:52px;border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:11px;background:var(--white);position:relative;cursor:default;transition:background 0.1s;}
+.cal-day.has-entry{background:var(--teal-bg);border-color:var(--teal-mid);cursor:pointer;}
+.cal-day.has-entry:hover{background:#c8eedd;}
+.cal-day.paid-entry{background:#FFFBEB;border-color:#FCD34D;cursor:pointer;}
+.cal-day.paid-entry:hover{background:#FEF3C7;}
+.cal-day.today{box-shadow:0 0 0 2px var(--teal);}
+.cal-day.empty{background:transparent;border-color:transparent;}
+.cal-day .cal-num{font-weight:500;color:var(--muted);margin-bottom:2px;}
+.cal-day.has-entry .cal-num{color:var(--teal-d);}
+.cal-day.paid-entry .cal-num{color:#92400E;}
+.cal-day .cal-hours{font-size:10px;color:var(--teal-d);font-weight:500;}
+.cal-day.paid-entry .cal-hours{color:#92400E;}
+.cal-day .cal-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);position:absolute;top:5px;right:6px;}
+.cal-day.paid-entry .cal-dot{background:#F59E0B;}
+.cal-legend{display:flex;gap:14px;padding:0 1.25rem 1rem;flex-wrap:wrap;}
+.cal-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.cal-legend-dot{width:10px;height:10px;border-radius:3px;border:1px solid;}
+.cal-legend-dot.l-empty{background:var(--white);border-color:var(--border);}
+.cal-legend-dot.l-logged{background:var(--teal-bg);border-color:var(--teal-mid);}
+.cal-legend-dot.l-paid{background:#FFFBEB;border-color:#FCD34D;}
+.ts-print-table{display:none;}
+@media print{
+  .ts-print-table{display:block!important;}
+  .ts-print-table table{width:100%;border-collapse:collapse;font-size:11px;}
+  .ts-print-table thead th{background:var(--bg);padding:6px 10px;text-align:left;border-bottom:2px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);}
+  .ts-print-table tbody td{padding:6px 10px;border-bottom:1px solid var(--border);}
+  .ts-print-table tfoot td{padding:7px 10px;background:var(--teal-bg);font-weight:600;border-top:2px solid var(--teal-mid);}
+  .ts-screen-only{display:none!important;}
+}
+
+/* Weekly rows */
+.week-row{display:grid;grid-template-columns:120px 1fr 80px 80px 80px;gap:0;border-bottom:1px solid var(--border);}
+.week-row:last-child{border-bottom:none;}
+.week-row-hdr{grid-template-columns:120px 1fr 80px 80px 80px;background:var(--bg);}
+.week-cell{padding:9px 14px;font-size:13px;}
+.week-cell.muted{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;font-weight:500;}
+.week-cell.right{text-align:right;}
+.week-group-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;padding:8px 14px 4px;background:var(--bg);border-bottom:1px solid var(--border);}
+
+/* Day detail */
+.day-detail-entry{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;}
+.day-detail-entry:last-child{border-bottom:none;}
+.day-time{font-size:12px;color:var(--muted);white-space:nowrap;min-width:90px;}
+.day-desc{font-size:13px;flex:1;}
+.day-hours{font-size:13px;font-weight:500;color:var(--teal);white-space:nowrap;}
+
+/* Comment box */
+.comment-box{margin:0 14px 14px;padding:10px 12px;background:var(--amber-bg);border:1px solid #FDE68A;border-radius:var(--radius-sm);}
+.comment-box-label{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--amber);font-weight:600;margin-bottom:6px;}
+.comment-textarea{width:100%;border:1px solid #FDE68A;border-radius:4px;padding:7px 9px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:var(--white);resize:vertical;min-height:56px;outline:none;transition:border-color 0.12s;}
+.comment-textarea:focus{border-color:var(--amber);}
+.comment-save-btn{margin-top:6px;padding:4px 12px;background:var(--amber);color:#fff;border:none;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;font-weight:500;}
+.comment-save-btn:hover{background:#92400e;}
+.comment-saved{font-size:11px;color:var(--amber);margin-left:8px;opacity:0;transition:opacity 0.3s;}
+.comment-saved.show{opacity:1;}
+
+/* Clickable week group label */
+.week-group-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;padding:8px 14px 4px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.week-day-link{background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;padding:0;text-decoration:underline;text-underline-offset:3px;}
+.week-day-link:hover{color:var(--teal);}
+
+/* Invoice panel overlay */
+.inv-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;}
+.inv-panel{background:var(--white);border-radius:var(--radius);width:620px;max-width:100%;max-height:92vh;overflow-y:auto;}
+.inv-panel-header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.inv-panel-title{font-size:15px;font-weight:500;}
+.inv-close{background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;padding:2px 6px;}
+.inv-close:hover{color:var(--text);}
+.inv-panel-body{padding:1.5rem;}
+.inv-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.inv-row:last-child{border-bottom:none;}
+.inv-row-label{color:var(--muted);}
+.inv-row-val{font-weight:500;}
+.inv-actions{display:flex;gap:8px;padding:1rem 1.5rem;border-top:1px solid var(--border);justify-content:flex-end;}
+
+/* Printable invoice — when panel is open, print only the panel */
+@media print{
+  @page{
+    size:A4;
+    margin:12mm 10mm 12mm 10mm; /* narrow margins */
+  }
+  html,body{width:210mm;margin:0 auto;}
+  .sidebar,.no-print{display:none!important;}
+  .main{margin-left:0!important;padding:0!important;max-width:100%!important;}
+  /* When invoice overlay is present, show only it */
+  body.printing-invoice .app > .main > *:not(.inv-overlay){display:none!important;}
+  body.printing-invoice .inv-overlay{position:static!important;background:none!important;padding:0!important;display:block!important;}
+  body.printing-invoice .inv-panel{width:100%!important;max-height:none!important;border-radius:0!important;border:none!important;box-shadow:none!important;}
+  body.printing-invoice .inv-panel-header{display:none!important;}
+  body.printing-invoice .inv-close{display:none!important;}
+  /* Show print-only elements (invoice title bar) */
+  .print-only{display:flex!important;}
+}
+
+/* Responsive */
+@media(max-width:700px){
+  .sidebar{display:none;}
+  .main{margin-left:0;padding:1rem;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="toast" id="toast"></div>
+<script>
+const PROFILE = { name:'Stephen Reyes', email:'stephen.reyes.va@gmail.com', role:'E-Commerce Virtual Assistant', rate:5 };
+const CLIENT  = { name:'Margarite', company:'All Riot Ltd.' };
+const PAYMENT = { paypal:'stephen.reyes.va@gmail.com' };
+const RATE    = 5;
+const STATUSES = ['draft','sent','pending','paid','overdue'];
+const STATUS_LABELS = {draft:'Draft',sent:'Sent',pending:'Pending',paid:'Paid',overdue:'Overdue'};
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+let page = 'dashboard';
+let data = { entries:[], invoices:[], comments:{} };
+let selectedInvoice = null;
+
+// View state
+let tsView = 'calendar'; // 'calendar','daily','weekly','monthly'
+let tsMonth = new Date().getMonth();
+let tsYear  = new Date().getFullYear();
+let dashMonth = new Date().getMonth();
+let dashYear  = new Date().getFullYear();
+let dashPeriod = new Date().getDate() <= 15 ? 'A' : 'B'; // A = 1–15, B = 16–end
+let selectedCalDay = null;
+
+function fmt(n){ return '$'+parseFloat(n||0).toFixed(2); }
+function fmtDate(d){ if(!d)return'—'; const dt=new Date(d+'T00:00:00'); return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function totalHours(arr){ return arr.reduce((s,e)=>s+(parseFloat(e.hours)||0),0); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); }
+function getMonthEntries(m,y){ return data.entries.filter(e=>{ if(!e.date)return false; const d=new Date(e.date+'T00:00:00'); return d.getMonth()===m&&d.getFullYear()===y; }); }
+function getDayEntries(dateStr){ return data.entries.filter(e=>e.date===dateStr); }
+
+// Returns a Set of date strings (YYYY-MM-DD) that fall within a PAID invoice period
+function getPaidDates(){
+  const paidInvs=data.invoices.filter(i=>i.status==='paid');
+  const paid=new Set();
+  data.entries.forEach(e=>{
+    if(!e.date) return;
+    const covered=paidInvs.some(inv=>{
+      if(!inv.label) return false;
+      const d=new Date(e.date+'T00:00:00');
+      const mname=MONTHS[d.getMonth()]; const yr=String(d.getFullYear());
+      if(!inv.label.includes(mname)||!inv.label.includes(yr)) return false;
+      const rangeMatch=inv.label.match(/(\d+)\s*[–\-]\s*(\d+)/);
+      if(rangeMatch){ const s=parseInt(rangeMatch[1]),en=parseInt(rangeMatch[2]); return d.getDate()>=s&&d.getDate()<=en; }
+      return true;
+    });
+    if(covered) paid.add(e.date);
+  });
+  return paid;
+}
+
+// ── Print with auto filename ──────────────────────────────────
+// Browser uses the document <title> as the default save/print filename.
+// We temporarily swap it, print, then restore.
+const _defaultTitle = 'Stephen Reyes – Time Tracker';
+function printWithName(filename){
+  const old = document.title;
+  document.title = filename;
+  window.print();
+  // Restore after a tick so the print dialog has captured the title
+  setTimeout(()=>{ document.title = old||_defaultTitle; }, 500);
+}
+function printInvoice(inv){
+  // Filename: INV-001-MargariteAllRiot  (sanitised, no spaces)
+  const clientSlug = (CLIENT.name+CLIENT.company).replace(/[^a-zA-Z0-9]/g,'').slice(0,20);
+  const name = (inv.number||'INV')+'-'+clientSlug;
+  document.body.classList.add('printing-invoice');
+  const old = document.title;
+  document.title = name;
+  window.print();
+  setTimeout(()=>{
+    document.title = old||_defaultTitle;
+    document.body.classList.remove('printing-invoice');
+  }, 500);
+}
+function printTimesheet(dateStr){
+  // Filename: ddmmyyyy-MargariteAllRiot
+  let label;
+  if(dateStr){
+    const d=new Date(dateStr+'T00:00:00');
+    const dd=String(d.getDate()).padStart(2,'0');
+    const mm=String(d.getMonth()+1).padStart(2,'0');
+    const yyyy=d.getFullYear();
+    label=dd+mm+yyyy;
+  } else {
+    // Use selected month/year
+    const mm=String(tsMonth+1).padStart(2,'0');
+    label='01'+mm+tsYear;
+  }
+  const clientSlug = (CLIENT.name+CLIENT.company).replace(/[^a-zA-Z0-9]/g,'').slice(0,20);
+  printWithName(label+'-'+clientSlug);
+}
+
+function loadData(){
+  const r=localStorage.getItem('sr_tracker_v1');
+  if(r){ try{ data=JSON.parse(r); }catch(e){} }
+  if(!data.comments) data.comments={};
+}
+function saveComment(dateStr, text){
+  if(!data.comments) data.comments={};
+  data.comments[dateStr]=text;
+  localStorage.setItem('sr_tracker_v1', JSON.stringify(data));
+}
+
+// ── Render ────────────────────────────────────────────────────
+function render(){
+  loadData(); // always re-read so dashboard reflects latest timesheet entries
+  const root=document.getElementById('root');
+  root.innerHTML='';
+  root.appendChild(buildApp());
+}
+
+// ── App shell ─────────────────────────────────────────────────
+function buildApp(){
+  const app=document.createElement('div'); app.className='app';
+  app.appendChild(buildSidebar());
+  const main=document.createElement('div'); main.className='main';
+  const pages={dashboard:buildDashboard,timesheet:buildTimesheet,invoices:buildInvoices};
+  main.appendChild((pages[page]||buildDashboard)());
+  app.appendChild(main);
+  if(selectedInvoice) app.appendChild(buildInvoicePanel(selectedInvoice));
+  return app;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────
+function buildSidebar(){
+  const sb=document.createElement('div'); sb.className='sidebar';
+  const logo=document.createElement('div'); logo.className='logo';
+  logo.innerHTML=`<div class="logo-name"><span class="logo-dot"></span>Stephen Reyes</div><div class="logo-email">stephen.reyes.va@gmail.com</div>`;
+  sb.appendChild(logo);
+  [
+    {id:'dashboard',label:'Dashboard',icon:'<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'},
+    {id:'timesheet',label:'Timesheet',icon:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'},
+    {id:'invoices',label:'Invoices',icon:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'},
+  ].forEach(item=>{
+    const btn=document.createElement('button'); btn.className='nav-item'+(page===item.id?' active':'');
+    btn.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${item.icon}</svg>${item.label}`;
+    btn.addEventListener('click',()=>{ page=item.id; render(); }); sb.appendChild(btn);
+  });
+  const bot=document.createElement('div'); bot.className='sidebar-bottom';
+  bot.innerHTML=`
+    <div class="sb-info">Billing to<span>${CLIENT.name}</span><span style="font-weight:400;color:var(--muted)">${CLIENT.company}</span></div>
+    <div class="sb-info" style="margin-top:2px">Payment<span>PayPal</span><span style="font-weight:400;color:var(--muted);font-size:11px">${PAYMENT.paypal}</span></div>`;
+
+  sb.appendChild(bot); return sb;
+}
+
+// ── Dashboard helpers ─────────────────────────────────────────
+// Bi-monthly periods: 1st–15th (period A) and 16th–end (period B)
+function getBiMonthlyPeriod(m, y){
+  const lastDay = new Date(y, m+1, 0).getDate();
+  if(dashPeriod === 'A'){
+    return { label:'1–15', start:`${y}-${String(m+1).padStart(2,'0')}-01`, end:`${y}-${String(m+1).padStart(2,'0')}-15` };
+  } else {
+    return { label:`16–${lastDay}`, start:`${y}-${String(m+1).padStart(2,'0')}-16`, end:`${y}-${String(m+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}` };
+  }
+}
+function getPeriodEntries(start, end){
+  return data.entries.filter(e=>{ if(!e.date)return false; return e.date >= start && e.date <= end; });
+}
+
+
+// ── Dashboard ─────────────────────────────────────────────────
+function buildDashboard(){
+  const div=document.createElement('div');
+
+  // Header with month/year + period selectors
+  const hdr=document.createElement('div'); hdr.className='page-header';
+  const htxt=document.createElement('div');
+  const lastDayOfMonth=new Date(dashYear,dashMonth+1,0).getDate();
+  const periodLabel=dashPeriod==='A'?'1–15':'16–'+lastDayOfMonth;
+  htxt.innerHTML=`<div class="page-title">Dashboard</div><div class="page-sub">${MONTHS[dashMonth]} ${dashYear} · ${periodLabel}</div>`;
+  hdr.appendChild(htxt);
+
+  const ms=document.createElement('div'); ms.className='month-selector no-print';
+
+  const pSel=document.createElement('select');
+  pSel.title='Select pay period';
+  pSel.style.cssText='padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:"DM Sans",sans-serif;font-size:12px;color:var(--text);background:var(--white);outline:none;cursor:pointer;font-weight:500;';
+  [{val:'A',label:'1 – 15'},{val:'B',label:`16 – ${lastDayOfMonth}`}].forEach(p=>{
+    const o=document.createElement('option'); o.value=p.val; o.textContent=p.label;
+    if(p.val===dashPeriod) o.selected=true; pSel.appendChild(o);
+  });
+  pSel.addEventListener('change',e=>{ dashPeriod=e.target.value; render(); });
+  ms.appendChild(pSel);
+
+  const mSel=document.createElement('select');
+  MONTHS.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m; if(i===dashMonth)o.selected=true; mSel.appendChild(o); });
+  mSel.addEventListener('change',e=>{ dashMonth=parseInt(e.target.value); render(); });
+
+  const ySel=document.createElement('select');
+  const curY=new Date().getFullYear();
+  for(let y=curY-2;y<=curY+1;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===dashYear)o.selected=true; ySel.appendChild(o); }
+  ySel.addEventListener('change',e=>{ dashYear=parseInt(e.target.value); render(); });
+
+  ms.appendChild(mSel); ms.appendChild(ySel); hdr.appendChild(ms);
+  div.appendChild(hdr);
+
+  // Compute data for selected period
+  const period=getBiMonthlyPeriod(dashMonth,dashYear);
+  const periodEntries=getPeriodEntries(period.start,period.end);
+  const mEntries=getMonthEntries(dashMonth,dashYear);
+  const periodH=totalHours(periodEntries);
+  const mH=totalHours(mEntries);
+  const unpaidInvs=data.invoices.filter(i=>i.status!=='paid');
+  const unpaidCount=unpaidInvs.length;
+
+  // ── Stat cards — hours only, no dollar amounts ──
+  const sg=document.createElement('div'); sg.className='stats-grid';
+  sg.innerHTML=`
+    <div class="stat-card">
+      <div class="stat-label">${MONTHS[dashMonth]} ${period.label} Hours</div>
+      <div class="stat-value teal">${periodH.toFixed(1)}</div>
+      <div class="stat-sub">bi-monthly period</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">${MONTHS[dashMonth]} ${dashYear} Total</div>
+      <div class="stat-value">${mH.toFixed(1)}</div>
+      <div class="stat-sub">full month hours</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Outstanding Invoices</div>
+      <div class="stat-value${unpaidCount===0?' teal':''}">${unpaidCount}</div>
+      <div class="stat-sub">${unpaidCount===0?'All invoices paid ✓':`unpaid invoice(s)`}</div>
+    </div>`;
+  div.appendChild(sg);
+
+  // ── Period summary card — dates clickable, hours only ──
+  const card=document.createElement('div'); card.className='card'; card.style.marginBottom='1.25rem';
+  const chdr=document.createElement('div'); chdr.className='card-header';
+  chdr.innerHTML=`<div class="card-title">${MONTHS[dashMonth]} ${dashYear} — ${period.label} Summary</div><div style="font-size:12px;color:var(--muted)">${periodH.toFixed(1)}h total</div>`;
+  card.appendChild(chdr);
+  const body=document.createElement('div'); body.style.padding='0 1.25rem';
+
+  const byDate={};
+  periodEntries.forEach(e=>{ if(!byDate[e.date])byDate[e.date]=[]; byDate[e.date].push(e); });
+  const sortedDates=Object.keys(byDate).sort();
+
+  if(!sortedDates.length){
+    body.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><p>No entries for ${MONTHS[dashMonth]} ${dashYear} (${period.label}).</p></div>`;
+  } else {
+    sortedDates.forEach(dateStr=>{
+      const dayEntries=byDate[dateStr];
+      const dayH=totalHours(dayEntries);
+      const firstDesc=dayEntries[0].description||'';
+      const moreLabel=dayEntries.length>1?` <span style="color:var(--hint);font-size:11px">+${dayEntries.length-1} more</span>`:'';
+      const r=document.createElement('div'); r.className='entry-row-mini'; r.style.cursor='pointer';
+      r.title='Click to view full detail for this day';
+      r.innerHTML=`
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:var(--teal);font-size:12px;font-weight:500;text-decoration:underline;text-underline-offset:3px">${fmtDate(dateStr)}</span>
+          <span style="color:var(--muted);font-size:12px">${firstDesc||'<span style="color:var(--hint)">No description</span>'}${moreLabel}</span>
+        </div>
+        <div style="white-space:nowrap;color:var(--teal);font-weight:500">${dayH.toFixed(1)}h</div>`;
+      r.addEventListener('click',()=>{
+        page='timesheet'; tsView='daily'; selectedCalDay=dateStr;
+        tsMonth=new Date(dateStr+'T00:00:00').getMonth();
+        tsYear=new Date(dateStr+'T00:00:00').getFullYear();
+        render();
+      });
+      body.appendChild(r);
+    });
+    const tot=document.createElement('div'); tot.style.cssText='padding:10px 0;display:flex;justify-content:space-between;font-size:13px;font-weight:500;border-top:1px solid var(--border);margin-top:4px;';
+    tot.innerHTML=`<span style="color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:0.06em">Period Total</span><span style="color:var(--teal)">${periodH.toFixed(1)}h</span>`;
+    body.appendChild(tot);
+  }
+  card.appendChild(body); div.appendChild(card);
+
+  // ── Invoice overview — clickable numbers, shows amount ──
+  if(data.invoices.length){
+    const ic=document.createElement('div'); ic.className='card';
+    const ichdr=document.createElement('div'); ichdr.className='card-header';
+    ichdr.innerHTML=`<div class="card-title">Invoice Overview</div><div style="font-size:12px;color:var(--muted)">${data.invoices.length} invoice(s) · ${data.invoices.filter(i=>i.status==='paid').length} paid</div>`;
+    ic.appendChild(ichdr);
+    const ib=document.createElement('div'); ib.style.padding='0 1.25rem';
+    [...data.invoices].reverse().slice(0,6).forEach(inv=>{
+      const r=document.createElement('div'); r.className='entry-row-mini';
+      // Entire row is clickable
+      r.style.cursor='pointer';
+      r.title='Click to view invoice details';
+      const numBtn=document.createElement('button');
+      numBtn.style.cssText='background:none;border:none;cursor:pointer;font-weight:500;color:var(--teal);font-family:inherit;font-size:13px;padding:0;text-decoration:underline;text-underline-offset:3px;';
+      numBtn.textContent=inv.number;
+      const left=document.createElement('div'); left.style.cssText='display:flex;align-items:center;gap:6px;';
+      left.appendChild(numBtn);
+      const pill=document.createElement('span'); pill.className='period-pill'; pill.textContent=inv.label||'—';
+      left.appendChild(pill);
+      const right=document.createElement('div'); right.style.cssText='display:flex;align-items:center;gap:10px;';
+      right.innerHTML=`<span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span><span style="font-weight:500">${fmt(inv.total||0)}</span>`;
+      r.appendChild(left); r.appendChild(right);
+      // Click anywhere on row opens invoice panel
+      r.addEventListener('click',()=>{ selectedInvoice=inv; render(); });
+      ib.appendChild(r);
+    });
+    ic.appendChild(ib); div.appendChild(ic);
+  }
+  return div;
+}
+
+// ── Timesheet ─────────────────────────────────────────────────
+function buildTimesheet(){
+  const div=document.createElement('div');
+
+  const hdr=document.createElement('div'); hdr.className='page-header';
+  const htxt=document.createElement('div');
+  htxt.innerHTML=`<div class="page-title">Timesheet</div><div class="page-sub">${MONTHS[tsMonth]} ${tsYear}</div>`;
+  hdr.appendChild(htxt);
+
+  const ctrl=document.createElement('div'); ctrl.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+
+  // View toggle — Calendar | Daily | Weekly | Monthly
+  const tog=document.createElement('div'); tog.className='view-toggle ts-screen-only';
+  [
+    {v:'calendar',label:'Calendar'},
+    {v:'daily',   label:'Daily'},
+    {v:'weekly',  label:'Weekly'},
+    {v:'monthly', label:'Monthly'},
+  ].forEach(({v,label})=>{
+    const b=document.createElement('button'); b.className='vt-btn'+(tsView===v?' active':'');
+    b.textContent=label;
+    b.addEventListener('click',()=>{ tsView=v; selectedCalDay=null; render(); });
+    tog.appendChild(b);
+  });
+  ctrl.appendChild(tog);
+
+  // Month / year selector
+  const ms=document.createElement('div'); ms.className='month-selector ts-screen-only';
+  const mSel=document.createElement('select');
+  MONTHS.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m; if(i===tsMonth)o.selected=true; mSel.appendChild(o); });
+  mSel.addEventListener('change',e=>{ tsMonth=parseInt(e.target.value); selectedCalDay=null; render(); });
+  const ySel=document.createElement('select');
+  const curY=new Date().getFullYear();
+  for(let y=curY-2;y<=curY+1;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===tsYear)o.selected=true; ySel.appendChild(o); }
+  ySel.addEventListener('change',e=>{ tsYear=parseInt(e.target.value); selectedCalDay=null; render(); });
+  ms.appendChild(mSel); ms.appendChild(ySel); ctrl.appendChild(ms);
+
+  // Print button
+  const pb=document.createElement('button'); pb.className='btn btn-outline btn-sm ts-screen-only';
+  pb.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print`;
+  pb.addEventListener('click',()=>printTimesheet(selectedCalDay||null)); ctrl.appendChild(pb);
+
+  hdr.appendChild(ctrl);
+  div.appendChild(hdr);
+
+  // Screen view
+  const screenWrap=document.createElement('div'); screenWrap.className='ts-screen-only';
+  if(tsView==='calendar') screenWrap.appendChild(buildCalendar());
+  else if(tsView==='weekly') screenWrap.appendChild(buildWeeklyView());
+  else if(tsView==='monthly') screenWrap.appendChild(buildMonthlyTableView());
+  else screenWrap.appendChild(buildDailyView());
+  div.appendChild(screenWrap);
+
+  // Print-only flat table — always rendered, hidden on screen, shown on print
+  div.appendChild(buildPrintTable());
+
+  return div;
+}
+
+// ── Helper: build day detail card ────────────────────────────
+function buildDayCard(dateStr, showBackBtn){
+  const entries=getDayEntries(dateStr);
+  const dH=totalHours(entries);
+  const card=document.createElement('div'); card.className='card'; card.style.marginBottom='1rem';
+
+  const hdr=document.createElement('div'); hdr.className='card-header';
+  const titleSpan=document.createElement('div'); titleSpan.className='card-title'; titleSpan.textContent=fmtDate(dateStr);
+  const rightSide=document.createElement('div'); rightSide.style.cssText='display:flex;align-items:center;gap:8px;';
+  rightSide.innerHTML=`<span style="font-size:12px;color:var(--muted)">${dH.toFixed(1)}h</span>`;
+  if(showBackBtn){
+    const bb=document.createElement('button'); bb.className='btn btn-outline btn-sm ts-screen-only'; bb.textContent='← Back';
+    bb.addEventListener('click',()=>{ selectedCalDay=null; render(); }); rightSide.appendChild(bb);
+  }
+  hdr.appendChild(titleSpan); hdr.appendChild(rightSide); card.appendChild(hdr);
+
+  if(!entries.length){
+    card.innerHTML+=`<div class="empty"><div class="empty-icon">⏱</div><p>No time entries for this day.</p></div>`;
+  } else {
+    entries.sort((a,b)=>(a.timeIn||'').localeCompare(b.timeIn||'')).forEach(e=>{
+      const row=document.createElement('div'); row.className='day-detail-entry';
+      const timeIn=e.timeIn||'—'; const timeOut=e.timeOut||'—';
+      row.innerHTML=`
+        <div class="day-time">${timeIn} – ${timeOut}</div>
+        <div class="day-desc">${e.description||'<span style="color:var(--hint)">No description</span>'}</div>
+        <div class="day-hours">${parseFloat(e.hours||0).toFixed(1)}h</div>`;
+      card.appendChild(row);
+    });
+  }
+
+  // Notes box — screen only
+  const cb=document.createElement('div'); cb.className='comment-box ts-screen-only';
+  const existingComment=(data.comments&&data.comments[dateStr])||'';
+  cb.innerHTML=`<div class="comment-box-label">💬 Notes / Comments</div>`;
+  const ta=document.createElement('textarea'); ta.className='comment-textarea';
+  ta.placeholder='Add a note or comment about this day\u2019s entries\u2026';
+  ta.value=existingComment;
+  const saveRow=document.createElement('div'); saveRow.style.cssText='display:flex;align-items:center;margin-top:6px;';
+  const saveBtn=document.createElement('button'); saveBtn.className='comment-save-btn'; saveBtn.textContent='Save note';
+  const savedMsg=document.createElement('span'); savedMsg.className='comment-saved'; savedMsg.textContent='Saved ✓';
+  saveBtn.addEventListener('click',()=>{
+    saveComment(dateStr, ta.value);
+    savedMsg.classList.add('show');
+    setTimeout(()=>savedMsg.classList.remove('show'), 2000);
+  });
+  saveRow.appendChild(saveBtn); saveRow.appendChild(savedMsg);
+  cb.appendChild(ta); cb.appendChild(saveRow);
+  card.appendChild(cb);
+
+  return card;
+}
+
+// ── Calendar view ─────────────────────────────────────────────
+function buildCalendar(){
+  const paidDates=getPaidDates();
+  const wrap=document.createElement('div'); wrap.className='card';
+  const hdr=document.createElement('div'); hdr.className='card-header';
+  const mEntries=getMonthEntries(tsMonth,tsYear);
+  const mH=totalHours(mEntries);
+  hdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear}</div><div style="font-size:12px;color:var(--muted)">${mH.toFixed(1)}h total</div>`;
+  wrap.appendChild(hdr);
+
+  const cal=document.createElement('div'); cal.className='cal-wrap';
+  const grid=document.createElement('div'); grid.className='cal-grid';
+  DAYS.forEach(d=>{ const dh=document.createElement('div'); dh.className='cal-day-header'; dh.textContent=d; grid.appendChild(dh); });
+
+  const entryMap={};
+  mEntries.forEach(e=>{ if(!entryMap[e.date])entryMap[e.date]=[]; entryMap[e.date].push(e); });
+
+  const firstDay=new Date(tsYear,tsMonth,1).getDay();
+  const daysInMonth=new Date(tsYear,tsMonth+1,0).getDate();
+  const today=new Date().toISOString().slice(0,10);
+
+  for(let i=0;i<firstDay;i++){ const ec=document.createElement('div'); ec.className='cal-day empty'; grid.appendChild(ec); }
+
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayEntries=entryMap[dateStr]||[];
+    const hasEntry=dayEntries.length>0;
+    const isPaid=hasEntry&&paidDates.has(dateStr);
+    const hours=totalHours(dayEntries);
+    const hasComment=!!(data.comments&&data.comments[dateStr]);
+
+    const cell=document.createElement('div');
+    // paid overrides has-entry (yellow beats green)
+    let cls='cal-day';
+    if(isPaid) cls+=' paid-entry';
+    else if(hasEntry) cls+=' has-entry';
+    if(dateStr===today) cls+=' today';
+    cell.className=cls;
+    if(hasEntry) cell.style.cursor='pointer';
+
+    cell.title=hasEntry
+      ? `${hours.toFixed(1)}h logged${isPaid?' · Invoice paid':''} — click for details`
+      : '';
+    cell.innerHTML=`<div class="cal-num">${d}</div>`
+      +(hasEntry?`<div class="cal-hours">${hours.toFixed(1)}h</div><div class="cal-dot"></div>`:'')
+      +(hasComment?`<div style="position:absolute;bottom:4px;left:5px;font-size:9px;color:var(--amber)">💬</div>`:'');
+
+    if(hasEntry){
+      cell.addEventListener('click',()=>{ tsView='daily'; selectedCalDay=dateStr; render(); });
+    }
+    grid.appendChild(cell);
+  }
+
+  cal.appendChild(grid);
+  wrap.appendChild(cal);
+
+  // Legend
+  const legend=document.createElement('div'); legend.className='cal-legend';
+  legend.innerHTML=`
+    <div class="cal-legend-item"><div class="cal-legend-dot l-empty"></div>No entry</div>
+    <div class="cal-legend-item"><div class="cal-legend-dot l-logged"></div>Hours logged</div>
+    <div class="cal-legend-item"><div class="cal-legend-dot l-paid"></div>Invoice paid</div>`;
+  wrap.appendChild(legend);
+
+  return wrap;
+}
+
+// ── Weekly view ───────────────────────────────────────────────
+function buildWeeklyView(){
+  const mEntries=getMonthEntries(tsMonth,tsYear);
+  const mH=totalHours(mEntries);
+  const weeks={};
+  mEntries.forEach(e=>{
+    const d=new Date(e.date+'T00:00:00');
+    const weekStart=new Date(d); weekStart.setDate(d.getDate()-d.getDay());
+    const wk=weekStart.toISOString().slice(0,10);
+    if(!weeks[wk])weeks[wk]=[];
+    weeks[wk].push(e);
+  });
+  const div=document.createElement('div'); div.className='card';
+  const hdr=document.createElement('div'); hdr.className='card-header';
+  hdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear} — Weekly</div><div style="font-size:12px;color:var(--muted)">${mH.toFixed(1)}h</div>`;
+  div.appendChild(hdr);
+  const wkeys=Object.keys(weeks).sort();
+  if(!wkeys.length){ div.innerHTML+=`<div class="empty"><div class="empty-icon">📅</div><p>No entries for this month.</p></div>`; return div; }
+  const body=document.createElement('div');
+  const hr=document.createElement('div'); hr.className='week-row week-row-hdr';
+  hr.innerHTML=`<div class="week-cell muted">Date</div><div class="week-cell muted">Description</div><div class="week-cell muted right">Time In</div><div class="week-cell muted right">Time Out</div><div class="week-cell muted right">Hours</div>`;
+  body.appendChild(hr);
+  wkeys.forEach(wk=>{
+    const entries=weeks[wk];
+    const wkH=totalHours(entries);
+    const wStart=new Date(wk+'T00:00:00'); const wEnd=new Date(wStart); wEnd.setDate(wStart.getDate()+6);
+    const wLabel=`${wStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${wEnd.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+    const grp=document.createElement('div'); grp.className='week-group-label';
+    grp.innerHTML=`<span>${wLabel}</span><span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--teal)">${wkH.toFixed(1)}h</span>`;
+    body.appendChild(grp);
+    entries.sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+      const row=document.createElement('div'); row.className='week-row'; row.style.cursor='pointer';
+      const dateCell=document.createElement('div'); dateCell.className='week-cell';
+      const dateBtn=document.createElement('button'); dateBtn.className='week-day-link'; dateBtn.textContent=fmtDate(e.date);
+      dateBtn.addEventListener('click',evt=>{ evt.stopPropagation(); selectedCalDay=e.date; tsView='daily'; render(); });
+      dateCell.appendChild(dateBtn);
+      const descCell=document.createElement('div'); descCell.className='week-cell'; descCell.innerHTML=e.description||'<span style="color:var(--hint)">—</span>';
+      const tiCell=document.createElement('div'); tiCell.className='week-cell right'; tiCell.style.color='var(--muted)'; tiCell.textContent=e.timeIn||'—';
+      const toCell=document.createElement('div'); toCell.className='week-cell right'; toCell.style.color='var(--muted)'; toCell.textContent=e.timeOut||'—';
+      const hrsCell=document.createElement('div'); hrsCell.className='week-cell right'; hrsCell.style.fontWeight='500'; hrsCell.textContent=`${parseFloat(e.hours||0).toFixed(1)}h`;
+      row.appendChild(dateCell); row.appendChild(descCell); row.appendChild(tiCell); row.appendChild(toCell); row.appendChild(hrsCell);
+      row.addEventListener('click',()=>{ selectedCalDay=e.date; tsView='daily'; render(); });
+      body.appendChild(row);
+    });
+    const tot=document.createElement('div'); tot.className='week-row'; tot.style.background='var(--bg)';
+    tot.innerHTML=`<div class="week-cell" style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em">Week Total</div><div class="week-cell"></div><div class="week-cell"></div><div class="week-cell"></div><div class="week-cell right" style="font-weight:600;color:var(--teal)">${wkH.toFixed(1)}h</div>`;
+    body.appendChild(tot);
+  });
+  const mt=document.createElement('div'); mt.className='week-row'; mt.style.cssText='background:var(--teal-bg);border-top:2px solid var(--teal-mid);';
+  mt.innerHTML=`<div class="week-cell" style="font-size:11px;color:var(--teal-d);text-transform:uppercase;letter-spacing:0.05em;font-weight:600">Month Total</div><div class="week-cell"></div><div class="week-cell"></div><div class="week-cell"></div><div class="week-cell right" style="font-weight:700;color:var(--teal-d)">${mH.toFixed(1)}h</div>`;
+  body.appendChild(mt);
+  div.appendChild(body); return div;
+}
+
+// ── Monthly table view (all entries in a table) ───────────────
+function buildMonthlyTableView(){
+  const mEntries=getMonthEntries(tsMonth,tsYear).sort((a,b)=>a.date.localeCompare(b.date));
+  const mH=totalHours(mEntries);
+  const div=document.createElement('div'); div.className='card';
+  const hdr=document.createElement('div'); hdr.className='card-header';
+  hdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear} — All Entries</div><div style="font-size:12px;color:var(--muted)">${mH.toFixed(1)}h</div>`;
+  div.appendChild(hdr);
+  if(!mEntries.length){ div.innerHTML+=`<div class="empty"><div class="empty-icon">📅</div><p>No entries for this month.</p></div>`; return div; }
+  const wrap=document.createElement('div'); wrap.className='table-wrap';
+  const tbl=document.createElement('table');
+  tbl.innerHTML=`<thead><tr><th>Date</th><th>Description</th><th>Time In</th><th>Time Out</th><th style="text-align:right">Hours</th></tr></thead>`;
+  const tbody=document.createElement('tbody');
+  mEntries.forEach(e=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="white-space:nowrap;color:var(--muted)">${fmtDate(e.date)}</td><td>${e.description||'<span style="color:var(--hint)">—</span>'}</td><td style="color:var(--muted)">${e.timeIn||'—'}</td><td style="color:var(--muted)">${e.timeOut||'—'}</td><td style="text-align:right;font-weight:500">${parseFloat(e.hours||0).toFixed(1)}h</td>`;
+    tbody.appendChild(tr);
+  });
+  const tf=document.createElement('tfoot');
+  tf.innerHTML=`<tr><td colspan="4" style="font-size:11px;color:var(--teal-d);text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Month Total</td><td style="text-align:right;font-weight:700;color:var(--teal-d)">${mH.toFixed(1)}h</td></tr>`;
+  tbl.appendChild(tbody); tbl.appendChild(tf); wrap.appendChild(tbl); div.appendChild(wrap); return div;
+}
+
+// ── Daily view ────────────────────────────────────────────────
+function buildDailyView(){
+  const div=document.createElement('div');
+  if(selectedCalDay){ div.appendChild(buildDayCard(selectedCalDay,true)); return div; }
+  const mEntries=getMonthEntries(tsMonth,tsYear);
+  const byDay={};
+  mEntries.forEach(e=>{ if(!byDay[e.date])byDay[e.date]=[]; byDay[e.date].push(e); });
+  const days=Object.keys(byDay).sort().reverse();
+  const card=document.createElement('div'); card.className='card';
+  const hdr=document.createElement('div'); hdr.className='card-header';
+  const mH=totalHours(mEntries);
+  hdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear} — Daily Detail</div><div style="font-size:12px;color:var(--muted)">${mH.toFixed(1)}h</div>`;
+  card.appendChild(hdr);
+  if(!days.length){ card.innerHTML+=`<div class="empty"><div class="empty-icon">📅</div><p>No entries for this month.</p></div>`; }
+  else{
+    days.forEach(dateStr=>{
+      const entries=byDay[dateStr];
+      const dH=totalHours(entries);
+      const hasComment=!!(data.comments&&data.comments[dateStr]);
+      const dayHdr=document.createElement('div'); dayHdr.className='week-group-label'; dayHdr.style.cursor='pointer';
+      dayHdr.title='Click to see full detail for this day';
+      const dateBtn=document.createElement('button'); dateBtn.className='week-day-link';
+      dateBtn.textContent=fmtDate(dateStr)+(hasComment?' 💬':'');
+      dateBtn.addEventListener('click',()=>{ selectedCalDay=dateStr; render(); });
+      const rightInfo=document.createElement('span'); rightInfo.style.cssText='font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--teal);';
+      rightInfo.textContent=`${dH.toFixed(1)}h`;
+      dayHdr.appendChild(dateBtn); dayHdr.appendChild(rightInfo);
+      card.appendChild(dayHdr);
+      entries.sort((a,b)=>(a.timeIn||'').localeCompare(b.timeIn||'')).forEach(e=>{
+        const row=document.createElement('div'); row.className='day-detail-entry';
+        row.innerHTML=`<div class="day-time">${e.timeIn||'—'} – ${e.timeOut||'—'}</div><div class="day-desc">${e.description||'<span style="color:var(--hint)">No description</span>'}</div><div class="day-hours">${parseFloat(e.hours||0).toFixed(1)}h</div>`;
+        card.appendChild(row);
+      });
+    });
+  }
+  div.appendChild(card); return div;
+}
+
+// ── Print-only flat table (always rendered, shown only on print) ─
+function buildPrintTable(){
+  // Decide which entries to print: if a specific day is selected, just that day;
+  // otherwise all entries for the current tsMonth/tsYear, sorted by date
+  let entries;
+  if(selectedCalDay){
+    entries=getDayEntries(selectedCalDay);
+  } else {
+    entries=getMonthEntries(tsMonth,tsYear).sort((a,b)=>a.date.localeCompare(b.date));
+  }
+  const totalH=totalHours(entries);
+  const title=selectedCalDay?fmtDate(selectedCalDay):`${MONTHS[tsMonth]} ${tsYear}`;
+
+  const wrap=document.createElement('div'); wrap.className='ts-print-table';
+
+  // Header block
+  const printHdr=document.createElement('div'); printHdr.style.cssText='margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:2px solid var(--border);display:flex;justify-content:space-between;align-items:flex-end;';
+  printHdr.innerHTML=`
+    <div>
+      <div style="font-size:18px;font-weight:600">${PROFILE.name}</div>
+      <div style="font-size:12px;color:var(--muted)">${PROFILE.role} · ${PROFILE.email}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:14px;font-weight:500">Timesheet</div>
+      <div style="font-size:12px;color:var(--muted)">${title}</div>
+    </div>`;
+  wrap.appendChild(printHdr);
+
+  const tbl=document.createElement('table');
+  tbl.innerHTML=`<thead><tr><th>Date</th><th>Description</th><th>Time In</th><th>Time Out</th><th style="text-align:right">Hours</th></tr></thead>`;
+  const tbody=document.createElement('tbody');
+  if(!entries.length){
+    tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--hint)">No entries.</td></tr>`;
+  } else {
+    entries.forEach(e=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td style="white-space:nowrap;color:var(--muted)">${fmtDate(e.date)}</td><td>${e.description||'—'}</td><td>${e.timeIn||'—'}</td><td>${e.timeOut||'—'}</td><td style="text-align:right;font-weight:500">${parseFloat(e.hours||0).toFixed(1)}h</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  const tf=document.createElement('tfoot');
+  tf.innerHTML=`<tr><td colspan="4" style="color:var(--teal-d);text-transform:uppercase;letter-spacing:0.06em;font-size:10px">Total Hours</td><td style="text-align:right;color:var(--teal-d)">${totalH.toFixed(1)}h</td></tr>`;
+  tbl.appendChild(tbody); tbl.appendChild(tf); wrap.appendChild(tbl);
+
+  // Portal link
+  const foot=document.createElement('div'); foot.style.cssText='margin-top:1.5rem;font-size:10px;color:var(--muted);text-align:center;';
+  foot.textContent='stephenreyesva.github.io/allriot';
+  wrap.appendChild(foot);
+  return wrap;
+}
+
+// ── Invoices ─────────────────────────────────────────────────
+// ── Invoices ─────────────────────────────────────────────────
+function buildInvoices(){
+  const div=document.createElement('div');
+  const hdr=document.createElement('div'); hdr.className='page-header';
+  const paidCount=data.invoices.filter(i=>i.status==='paid').length;
+  const pendingCount=data.invoices.filter(i=>i.status!=='paid').length;
+  hdr.innerHTML=`<div><div class="page-title">Invoices</div><div class="page-sub">${data.invoices.length} invoice(s) · ${paidCount} paid · ${pendingCount} outstanding</div></div>`;
+  div.appendChild(hdr);
+
+  const card=document.createElement('div'); card.className='card';
+  if(!data.invoices.length){
+    card.innerHTML=`<div class="empty"><div class="empty-icon">🧾</div><p>No invoices yet.</p></div>`;
+  } else {
+    // Summary totals bar
+    const totalBilled=data.invoices.reduce((s,i)=>s+(parseFloat(i.total)||0),0);
+    const totalPaid=data.invoices.filter(i=>i.status==='paid').reduce((s,i)=>s+(parseFloat(i.total)||0),0);
+    const totalUnpaid=totalBilled-totalPaid;
+    const summaryBar=document.createElement('div');
+    summaryBar.style.cssText='display:flex;gap:0;border-bottom:1px solid var(--border);';
+    [
+      {label:'Total Billed',val:fmt(totalBilled),color:'var(--text)'},
+      {label:'Outstanding',val:fmt(totalUnpaid),color:totalUnpaid>0?'var(--amber)':'var(--teal)'},
+    ].forEach(s=>{
+      const cell=document.createElement('div');
+      cell.style.cssText='flex:1;padding:10px 16px;border-right:1px solid var(--border);';
+      cell.innerHTML=`<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:3px">${s.label}</div><div style="font-size:15px;font-weight:600;color:${s.color}">${s.val}</div>`;
+      summaryBar.appendChild(cell);
+    });
+    summaryBar.lastChild.style.borderRight='none';
+    card.appendChild(summaryBar);
+
+    const wrap=document.createElement('div'); wrap.className='table-wrap';
+    const tbl=document.createElement('table');
+    tbl.innerHTML=`<thead><tr><th>Invoice #</th><th>Period</th><th style="text-align:right">Hours</th><th style="text-align:right">Amount</th><th>Status</th><th>Remarks</th></tr></thead>`;
+    const tbody=document.createElement('tbody');
+    [...data.invoices].reverse().forEach(inv=>{
+      const tr=document.createElement('tr');
+
+      // Clickable invoice number — opens detail panel only
+      const numTd=document.createElement('td');
+      const numBtn=document.createElement('button');
+      numBtn.style.cssText='background:none;border:none;cursor:pointer;font-weight:600;color:var(--teal);font-family:inherit;font-size:13px;padding:0;text-decoration:underline;text-underline-offset:3px;';
+      numBtn.textContent=inv.number;
+      numBtn.title='Click to view invoice details';
+      numBtn.addEventListener('click',()=>{ selectedInvoice=inv; render(); });
+      numTd.appendChild(numBtn);
+      tr.appendChild(numTd);
+
+      // Period, hours, amount, status, remarks — all read-only
+      const periodTd=document.createElement('td'); periodTd.style.cssText='white-space:nowrap;color:var(--muted);font-size:12px;'; periodTd.textContent=inv.label||'—';
+      const hrsTd=document.createElement('td'); hrsTd.style.cssText='text-align:right;'; hrsTd.textContent=`${parseFloat(inv.hours||0).toFixed(1)}h`;
+      const amtTd=document.createElement('td'); amtTd.style.cssText='text-align:right;font-weight:500;color:var(--teal);'; amtTd.textContent=fmt(inv.total||0);
+      const statusTd=document.createElement('td'); statusTd.innerHTML=`<span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span>`;
+      const notesTd=document.createElement('td'); notesTd.style.cssText='color:var(--muted);font-size:12px;max-width:180px;'; notesTd.textContent=inv.notes||'—';
+
+      tr.appendChild(periodTd); tr.appendChild(hrsTd); tr.appendChild(amtTd);
+      tr.appendChild(statusTd); tr.appendChild(notesTd);
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody); wrap.appendChild(tbl); card.appendChild(wrap);
+
+    // Helper tip
+    const tip=document.createElement('div');
+    tip.style.cssText='padding:8px 16px;font-size:11px;color:var(--hint);border-top:1px solid var(--border);';
+    tip.textContent='Click an invoice number to view details, print, or download.';
+    card.appendChild(tip);
+  }
+  div.appendChild(card);
+  return div;
+}
+
+// ── Invoice Detail Panel ──────────────────────────────────────
+function buildInvoicePanel(inv){
+  const ov=document.createElement('div'); ov.className='inv-overlay';
+  ov.addEventListener('click',e=>{ if(e.target===ov){ selectedInvoice=null; render(); }});
+
+  const panel=document.createElement('div'); panel.className='inv-panel';
+
+  // ── Panel header (screen only) ──
+  const phdr=document.createElement('div'); phdr.className='inv-panel-header no-print';
+  phdr.innerHTML=`<div><div class="inv-panel-title">${inv.number}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${inv.label||'—'}</div></div>`;
+  const closeBtn=document.createElement('button'); closeBtn.className='inv-close no-print'; closeBtn.innerHTML='&times;';
+  closeBtn.addEventListener('click',()=>{ selectedInvoice=null; render(); });
+  phdr.appendChild(closeBtn); panel.appendChild(phdr);
+
+  // ── Printable invoice body ────────────────────────────────────
+  const body=document.createElement('div'); body.className='inv-panel-body';
+
+  // ── Print-only invoice title bar ──
+  const printTitle=document.createElement('div'); printTitle.className='print-only';
+  printTitle.style.cssText='display:none;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:2px solid var(--border);';
+  printTitle.innerHTML=`
+    <div>
+      <div style="font-size:22px;font-weight:700;color:var(--text)">INVOICE</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:2px">${inv.number}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:13px;color:var(--muted)">Portal:</div>
+      <div style="font-size:12px;color:var(--teal);font-weight:500">stephenreyesva.github.io/allriot</div>
+    </div>`;
+  body.appendChild(printTitle);
+
+  // From / To block
+  const fromTo=document.createElement('div'); fromTo.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border);';
+  fromTo.innerHTML=`
+    <div>
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600;margin-bottom:6px">From</div>
+      <div style="font-size:13px;font-weight:600">${PROFILE.name}</div>
+      <div style="font-size:12px;color:var(--muted)">${PROFILE.role}</div>
+      <div style="font-size:12px;color:var(--muted)">${PROFILE.email}</div>
+    </div>
+    <div>
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600;margin-bottom:6px">Billed To</div>
+      <div style="font-size:13px;font-weight:600">${CLIENT.name}</div>
+      <div style="font-size:12px;color:var(--muted)">${CLIENT.company}</div>
+    </div>`;
+  body.appendChild(fromTo);
+
+  // Invoice meta grid
+  const meta=document.createElement('div'); meta.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem;';
+  [
+    {label:'Invoice Number', val:inv.number},
+    {label:'Period',         val:inv.label||'—'},
+    {label:'Status',         val:`<span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span>`},
+    {label:'Payment Via',    val:`PayPal — ${PAYMENT.paypal}`},
+  ].forEach(m=>{
+    const cell=document.createElement('div'); cell.style.cssText='background:var(--bg);border-radius:var(--radius-sm);padding:8px 10px;';
+    cell.innerHTML=`<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:500;margin-bottom:3px">${m.label}</div><div style="font-size:13px;font-weight:500">${m.val}</div>`;
+    meta.appendChild(cell);
+  });
+  body.appendChild(meta);
+
+  // Time entries breakdown
+  const periodEntries=getEntriesForInvoice(inv);
+  const breakdownSec=document.createElement('div'); breakdownSec.style.marginBottom='1.25rem';
+  const breakHdr=document.createElement('div'); breakHdr.style.cssText='font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600;margin-bottom:6px;';
+  breakHdr.textContent='Time Entries Breakdown';
+  breakdownSec.appendChild(breakHdr);
+  const bTbl=document.createElement('table'); bTbl.style.cssText='width:100%;border-collapse:collapse;font-size:12px;';
+  bTbl.innerHTML=`<thead><tr style="background:var(--bg)">
+    <th style="padding:6px 10px;text-align:left;font-weight:500;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--border)">Date</th>
+    <th style="padding:6px 10px;text-align:left;font-weight:500;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--border)">Description</th>
+    <th style="padding:6px 10px;text-align:right;font-weight:500;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--border)">Hours</th>
+    <th style="padding:6px 10px;text-align:right;font-weight:500;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--border)">Amount</th>
+  </tr></thead>`;
+  const bTbody=document.createElement('tbody');
+  if(!periodEntries.length){
+    bTbody.innerHTML=`<tr><td colspan="4" style="padding:12px 10px;color:var(--hint);text-align:center;font-size:12px;">No matching time entries found for this period.</td></tr>`;
+  } else {
+    periodEntries.sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+      const er=document.createElement('tr');
+      er.innerHTML=`
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border);color:var(--muted);white-space:nowrap">${fmtDate(e.date)}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${e.description||'<span style="color:var(--hint)">—</span>'}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right">${parseFloat(e.hours||0).toFixed(1)}h</td>
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;color:var(--teal);font-weight:500">${fmt((parseFloat(e.hours)||0)*RATE)}</td>`;
+      bTbody.appendChild(er);
+    });
+  }
+  bTbl.appendChild(bTbody); breakdownSec.appendChild(bTbl);
+  body.appendChild(breakdownSec);
+
+  // ── Totals block ──
+  // PayPal fee: always show as positive deduction (displayed as "+ fee" note, or just listed positively)
+  const invHours=parseFloat(inv.hours||0);
+  const subtotal=invHours*RATE;
+  const paypalFee=Math.abs(parseFloat(inv.paypalFee||0)); // always positive
+  const grandTotal=parseFloat(inv.total||subtotal);
+
+  const totBlock=document.createElement('div'); totBlock.style.cssText='border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;';
+  const totRows=[
+    {label:`Subtotal (${invHours.toFixed(1)}h × $${RATE}/hr)`, val:fmt(subtotal), bold:false},
+  ];
+  if(paypalFee>0) totRows.push({label:'PayPal Fee', val:fmt(paypalFee), bold:false, note:'(deducted by PayPal)'});
+  totRows.push({label:'Total', val:fmt(grandTotal), bold:true});
+
+  totRows.forEach(row=>{
+    const tr=document.createElement('div');
+    tr.style.cssText=`display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);${row.bold?'background:var(--teal-bg);':'background:var(--white);'}`;
+    const labelSpan=document.createElement('span');
+    labelSpan.style.cssText=`font-size:13px;color:${row.bold?'var(--teal-d)':'var(--muted)'};${row.bold?'font-weight:600;':''}`;
+    labelSpan.innerHTML=row.label+(row.note?`<span style="font-size:11px;color:var(--hint);margin-left:6px">${row.note}</span>`:'');
+    const valSpan=document.createElement('span');
+    valSpan.style.cssText=`font-size:13px;font-weight:${row.bold?'700':'500'};color:${row.bold?'var(--teal-d)':'var(--text)'};`;
+    valSpan.textContent=row.val;
+    tr.appendChild(labelSpan); tr.appendChild(valSpan);
+    totBlock.appendChild(tr);
+  });
+  totBlock.lastChild.style.borderBottom='none';
+  body.appendChild(totBlock);
+
+  // Remarks
+  if(inv.notes){
+    const remSec=document.createElement('div'); remSec.style.cssText='background:var(--amber-bg);border:1px solid #FDE68A;border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:1rem;';
+    remSec.innerHTML=`<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--amber);font-weight:600;margin-bottom:4px">Remarks</div><div style="font-size:13px;color:var(--text)">${inv.notes}</div>`;
+    body.appendChild(remSec);
+  }
+
+  // Portal link — always visible at bottom
+  const portalRow=document.createElement('div'); portalRow.style.cssText='margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);text-align:center;';
+  portalRow.innerHTML=`<div style="font-size:11px;color:var(--muted);margin-bottom:2px">Client Portal</div><a href="https://stephenreyesva.github.io/allriot" style="font-size:12px;color:var(--teal);font-weight:500;text-decoration:none;" target="_blank">stephenreyesva.github.io/allriot</a>`;
+  body.appendChild(portalRow);
+
+  panel.appendChild(body);
+
+  // ── Action buttons (screen only, no-print) ──
+  const actions=document.createElement('div'); actions.className='inv-actions no-print';
+  const closeBtn2=document.createElement('button'); closeBtn2.className='btn btn-outline';
+  closeBtn2.textContent='Close';
+  closeBtn2.addEventListener('click',()=>{ selectedInvoice=null; render(); });
+  const printBtn=document.createElement('button'); printBtn.className='btn btn-outline';
+  printBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print`;
+  printBtn.addEventListener('click',()=>printInvoice(inv));
+  const dlBtn=document.createElement('button'); dlBtn.className='btn btn-primary';
+  dlBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download PDF`;
+  dlBtn.addEventListener('click',()=>{ toast('In the print dialog, choose \u201CSave as PDF\u201D to download.'); printInvoice(inv); });
+  actions.appendChild(closeBtn2); actions.appendChild(printBtn); actions.appendChild(dlBtn);
+  panel.appendChild(actions);
+
+  ov.appendChild(panel); return ov;
+}
+
+// ── Helper: get time entries matching an invoice period ───────
+function getEntriesForInvoice(inv){
+  if(!inv.label) return [];
+  const label=inv.label;
+  return data.entries.filter(e=>{
+    if(!e.date) return false;
+    const d=new Date(e.date+'T00:00:00');
+    const mname=MONTHS[d.getMonth()];
+    const yr=String(d.getFullYear());
+    if(!label.includes(mname)||!label.includes(yr)) return false;
+    const rangeMatch=label.match(/(\d+)\s*[–\-]\s*(\d+)/);
+    if(rangeMatch){
+      const startD=parseInt(rangeMatch[1]); const endD=parseInt(rangeMatch[2]);
+      return d.getDate()>=startD && d.getDate()<=endD;
+    }
+    return true;
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────
+loadData();
+render();
+</script>
+</body>
+</html>
