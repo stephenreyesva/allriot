@@ -1073,12 +1073,12 @@ function buildInvoicePanel(inv){
   const totRowsData=[
     {label:`Subtotal (${invHours.toFixed(1)}h × $${RATE}/hr)`, val:fmt(subtotal), bold:false},
   ];
-  if(paypalFee>0) totRowsData.push({label:`PayPal Fee`, note:'(deducted)', val:`– ${fmt(paypalFee)}`, bold:false, muted:true});
+  if(paypalFee>0) totRowsData.push({label:`PayPal Fee`, val:fmt(paypalFee), bold:false, muted:true});
   totRowsData.push({label:'Total Amount Due', val:fmt(grandTotal), bold:true});
   totRowsData.forEach(r=>{
     const tr=document.createElement('tr');
     if(r.bold) tr.className='total-row';
-    tr.innerHTML=`<td class="tot-label">${r.label}${r.note?`<span class="tot-note">${r.note}</span>`:''}</td><td class="tot-val${r.muted?' muted':''}">${r.val}</td>`;
+    tr.innerHTML=`<td class="tot-label">${r.label}</td><td class="tot-val${r.muted?' muted':''}">${r.val}</td>`;
     totBody.appendChild(tr);
   });
   totTable.appendChild(totBody); totWrap.appendChild(totTable); body.appendChild(totWrap);
