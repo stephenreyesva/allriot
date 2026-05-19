@@ -321,7 +321,7 @@ tfoot td{padding:10px 14px;font-size:12px;background:var(--bg);}
 <script>
 // ── Config ─────────────────────────────────────────────────────
 const PROFILE = { name:'Stephen Reyes', email:'stephen.reyes.va@gmail.com', role:'E-Commerce Virtual Assistant', rate:5 };
-const CLIENT  = { name:'Margarite', company:'All Riot Ltd.' };
+const CLIENT  = { name:'Margarite', company:'All Riot Ltd.', email:'info@allriot.com' };
 const PAYMENT = { paypal:'stephen.reyes.va@gmail.com' };
 const RATE    = 5;
 const STATUSES = ['draft','sent','pending','paid','overdue'];
@@ -1133,7 +1133,7 @@ function buildInvoicePanel(inv){
   const footer=document.createElement('div'); footer.className='inv-footer';
   footer.innerHTML=`
     <div class="inv-footer-thanks">Thank you for the opportunity to work with you!</div>
-    <div class="inv-footer-portal"><a href="https://stephenreyesva.github.io/allriot" target="_blank">stephenreyesva.github.io/allriot</a></div>`;
+    <div class="inv-footer-portal">Client portal: <a href="https://stephenreyesva.github.io/allriot" target="_blank">stephenreyesva.github.io/allriot</a></div>`;
   body.appendChild(footer);
   panel.appendChild(body);
 
