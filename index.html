@@ -351,6 +351,7 @@ function fmtDate(d){ if(!d)return'—'; const dt=new Date(d+'T00:00:00'); return
 function totalHours(arr){ return arr.reduce((s,e)=>s+(parseFloat(e.hours)||0),0); }
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); }
 function getMonthEntries(m,y){ return data.entries.filter(e=>{ if(!e.date)return false; const d=new Date(e.date+'T00:00:00'); return d.getMonth()===m&&d.getFullYear()===y; }); }
+function fmtTime(t){ if(!t||t==='—') return '—'; try{ const [h,m]=t.split(':'); const hr=parseInt(h); return `${hr%12||12}:${m} ${hr<12?'AM':'PM'}`; }catch(e){ return t; } }
 function getDayEntries(ds){ return data.entries.filter(e=>e.date===ds); }
 
 function getPaidDates(){
@@ -540,24 +541,17 @@ function buildDashboard(){
 
   const period=getBiMonthlyPeriod(dashMonth,dashYear);
   const periodEntries=getPeriodEntries(period.start,period.end);
-  const mEntries=getMonthEntries(dashMonth,dashYear);
   const periodH=totalHours(periodEntries);
-  const mH=totalHours(mEntries);
   const unpaidInvs=data.invoices.filter(i=>i.status!=='paid');
   const unpaidCount=unpaidInvs.length;
 
-  // Stats — hours only, no dollar amounts
-  const sg=document.createElement('div'); sg.className='stats-grid';
+  // Stats — bi-monthly period hours + outstanding invoices only
+  const sg=document.createElement('div'); sg.className='stats-grid'; sg.style.gridTemplateColumns='1fr 1fr';
   sg.innerHTML=`
     <div class="stat-card">
       <div class="stat-label">${MONTHS[dashMonth]} ${period.label} Hours</div>
       <div class="stat-value teal">${periodH.toFixed(1)}</div>
       <div class="stat-sub">bi-monthly period</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">${MONTHS[dashMonth]} ${dashYear} Total</div>
-      <div class="stat-value">${mH.toFixed(1)}</div>
-      <div class="stat-sub">full month hours</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Outstanding Invoices</div>
@@ -674,8 +668,66 @@ function buildTimesheet(){
   else                          screenWrap.appendChild(buildDailyView());
   div.appendChild(screenWrap);
 
+  // ── Detailed Log — hours only, latest first, view-only ────────
+  const mEntriesLog=getMonthEntries(tsMonth,tsYear);
+  if(mEntriesLog.length){
+    const paidDatesLog=getPaidDates();
+    div.appendChild(buildDetailedLogClient(mEntriesLog,paidDatesLog));
+  }
+
   div.appendChild(buildPrintTable());
   return div;
+}
+
+// ── Detailed Log for client — hours only, no edit/delete ───────
+function buildDetailedLogClient(mEntries,paidDates){
+  const monthH=totalHours(mEntries);
+  const sorted=[...mEntries].sort((a,b)=>b.date.localeCompare(a.date));
+
+  const card=document.createElement('div'); card.className='card'; card.style.marginTop='1.25rem';
+  const tblHdr=document.createElement('div'); tblHdr.className='card-header';
+  tblHdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear} — Detailed Log</div><div style="font-size:11px;color:var(--hint)">Latest first · paid entries are locked</div>`;
+  card.appendChild(tblHdr);
+
+  const wrap=document.createElement('div'); wrap.className='table-wrap';
+  const tbl=document.createElement('table');
+  tbl.innerHTML=`<thead><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Description</th><th style="text-align:right">Hours</th></tr></thead>`;
+  const tbody=document.createElement('tbody');
+
+  let lastDate='';
+  sorted.forEach(e=>{
+    const isPaidEntry=paidDates.has(e.date);
+    const tr=document.createElement('tr'); tr.style.cursor='default';
+    if(e.date!==lastDate&&lastDate!=='') tr.style.borderTop='2px solid var(--border)';
+    lastDate=e.date;
+
+    // Date cell
+    const dateTd=document.createElement('td');
+    const dateSpan=document.createElement('span');
+    dateSpan.style.cssText=`font-weight:600;font-size:13px;white-space:nowrap;color:${isPaidEntry?'#92400E':'var(--teal)'};`;
+    dateSpan.textContent=fmtDate(e.date);
+    dateTd.appendChild(dateSpan);
+    if(isPaidEntry){
+      const paidTag=document.createElement('span');
+      paidTag.style.cssText='font-size:9px;background:#FCD34D;color:#92400E;padding:1px 5px;border-radius:100px;margin-left:5px;font-weight:600;';
+      paidTag.textContent='PAID';
+      dateTd.appendChild(paidTag);
+    }
+    tr.appendChild(dateTd);
+
+    tr.innerHTML+=`
+      <td style="color:var(--muted);font-size:12px">${fmtTime(e.timeIn)}</td>
+      <td style="color:var(--muted);font-size:12px">${fmtTime(e.timeOut)}</td>
+      <td>${e.description||'<span style="color:var(--hint)">—</span>'}</td>
+      <td style="text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}">${parseFloat(e.hours||0).toFixed(1)}h</td>`;
+
+    tbody.appendChild(tr);
+  });
+
+  const tf=document.createElement('tfoot');
+  tf.innerHTML=`<tr><td colspan="4" style="font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.06em">Month Total</td><td style="text-align:right;font-weight:600">${monthH.toFixed(1)}h</td></tr>`;
+  tbl.appendChild(tbody); tbl.appendChild(tf); wrap.appendChild(tbl); card.appendChild(wrap);
+  return card;
 }
 
 // ── Accordion helper — builds a single date group ─────────────
@@ -848,6 +900,7 @@ function buildCalendar(){
   const today=new Date().toISOString().slice(0,10);
 
   for(let i=0;i<firstDay;i++){ const ec=document.createElement('div'); ec.className='cal-day empty'; grid.appendChild(ec); }
+
   for(let d=1;d<=daysInMonth;d++){
     const dateStr=`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dayEntries=entryMap[dateStr]||[];
@@ -860,16 +913,39 @@ function buildCalendar(){
     if(isPaid) cls+=' paid-entry'; else if(hasEntry) cls+=' has-entry';
     if(dateStr===today) cls+=' today';
     cell.className=cls;
-    if(hasEntry) cell.style.cursor='pointer';
-    cell.title=hasEntry?`${hours.toFixed(1)}h logged${isPaid?' · Invoice paid':''} — click for details`:'';
-    cell.innerHTML=`<div class="cal-num">${d}</div>`+(hasEntry?`<div class="cal-hours">${hours.toFixed(1)}h</div><div class="cal-dot"></div>`:'')+( hasComment?`<div style="position:absolute;bottom:4px;left:5px;font-size:9px;color:var(--amber)">💬</div>`:'');
-    if(hasEntry){ cell.addEventListener('click',()=>{ tsView='daily'; selectedCalDay=dateStr; render(); }); }
+    cell.style.cursor='pointer'; // ALL days clickable
+    cell.title=hasEntry
+      ?`${hours.toFixed(1)}h logged${isPaid?' · Invoice paid':''} — click for details`
+      :'Click to view this day';
+    cell.innerHTML=`<div class="cal-num">${d}</div>`
+      +(hasEntry?`<div class="cal-hours">${hours.toFixed(1)}h</div><div class="cal-dot"></div>`:'<div class="cal-plus">+</div>')
+      +(hasComment?`<div style="position:absolute;bottom:4px;left:5px;font-size:9px;color:var(--amber)">💬</div>`:'');
+    cell.addEventListener('click',()=>{ tsView='daily'; selectedCalDay=dateStr; render(); });
     grid.appendChild(cell);
   }
   cal.appendChild(grid); wrap.appendChild(cal);
 
+  // Bi-monthly summary strip — hours only
+  const lastDay=new Date(tsYear,tsMonth+1,0).getDate();
+  const periods=[
+    {label:`1 – 15`,       start:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-01`, end:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-15`},
+    {label:`16 – ${lastDay}`, start:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-16`, end:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`},
+  ];
+  const strip=document.createElement('div'); strip.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px 14px;border-top:1px solid var(--border);';
+  periods.forEach(p=>{
+    const pEntries=data.entries.filter(e=>e.date>=p.start&&e.date<=p.end);
+    const pH=totalHours(pEntries);
+    const sc=document.createElement('div'); sc.style.cssText='background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;';
+    sc.innerHTML=`
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600;margin-bottom:4px">${MONTHS[tsMonth]} ${p.label}</div>
+      <div style="font-size:20px;font-weight:600;color:var(--teal)">${pH.toFixed(1)}<span style="font-size:12px;font-weight:400;color:var(--muted)">h</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${pEntries.length} entr${pEntries.length!==1?'ies':'y'}</div>`;
+    strip.appendChild(sc);
+  });
+  wrap.appendChild(strip);
+
   const legend=document.createElement('div'); legend.className='cal-legend';
-  legend.innerHTML=`<div class="cal-legend-item"><div class="cal-legend-dot l-empty"></div>No entry</div><div class="cal-legend-item"><div class="cal-legend-dot l-logged"></div>Hours logged</div><div class="cal-legend-item"><div class="cal-legend-dot l-paid"></div>Invoice paid</div>`;
+  legend.innerHTML=`<div class="cal-legend-item"><div class="cal-legend-dot l-empty"></div>No entry (click to view)</div><div class="cal-legend-item"><div class="cal-legend-dot l-logged"></div>Hours logged</div><div class="cal-legend-item"><div class="cal-legend-dot l-paid"></div>Invoice paid</div>`;
   wrap.appendChild(legend);
   return wrap;
 }
@@ -1024,18 +1100,13 @@ function buildInvoices(){
   if(!data.invoices.length){
     card.innerHTML=`<div class="empty"><div class="empty-icon">🧾</div><p>No invoices yet.</p></div>`;
   } else {
-    const totalBilled=data.invoices.reduce((s,i)=>s+(parseFloat(i.total)||0),0);
-    const totalPaid=data.invoices.filter(i=>i.status==='paid').reduce((s,i)=>s+(parseFloat(i.total)||0),0);
-    const totalUnpaid=totalBilled-totalPaid;
+    const totalUnpaid=data.invoices.filter(i=>i.status!=='paid').reduce((s,i)=>s+(parseFloat(i.total)||0),0);
     const summaryBar=document.createElement('div');
-    summaryBar.style.cssText='display:flex;gap:0;border-bottom:1px solid var(--border);flex-wrap:wrap;';
-    [{label:'Total Billed',val:fmt(totalBilled),color:'var(--text)'},{label:'Outstanding',val:fmt(totalUnpaid),color:totalUnpaid>0?'var(--amber)':'var(--teal)'}].forEach(s=>{
-      const cell=document.createElement('div');
-      cell.style.cssText='flex:1;min-width:100px;padding:10px 16px;border-right:1px solid var(--border);';
-      cell.innerHTML=`<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:3px">${s.label}</div><div style="font-size:15px;font-weight:600;color:${s.color}">${s.val}</div>`;
-      summaryBar.appendChild(cell);
-    });
-    summaryBar.lastChild.style.borderRight='none';
+    summaryBar.style.cssText='display:flex;gap:0;border-bottom:1px solid var(--border);';
+    const cell=document.createElement('div');
+    cell.style.cssText='padding:10px 16px;';
+    cell.innerHTML=`<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:3px">Outstanding</div><div style="font-size:15px;font-weight:600;color:${totalUnpaid>0?'var(--amber)':'var(--teal)'}">${totalUnpaid>0?fmt(totalUnpaid):'All paid ✓'}</div>`;
+    summaryBar.appendChild(cell);
     card.appendChild(summaryBar);
 
     const wrap=document.createElement('div'); wrap.className='table-wrap';
