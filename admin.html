@@ -854,15 +854,10 @@ function buildDetailedLog(mEntries,monthH,paidDates){
 
     tr.innerHTML+=`<td style="color:var(--muted);font-size:12px">${fmtTime(e.timeIn)}</td><td style="color:var(--muted);font-size:12px">${fmtTime(e.timeOut)}</td><td>${e.description||'<span style="color:var(--hint)">—</span>'}</td><td style="text-align:right">${parseFloat(e.hours||0).toFixed(1)}h</td><td style="text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}">${fmt((parseFloat(e.hours)||0)*RATE)}</td>`;
 
-    // Actions: View for paid; Edit+Delete for unpaid
+    // Actions: paid entries — date is clickable to view; Edit+Delete for unpaid
     const td=document.createElement('td'); td.style.cssText='text-align:right;white-space:nowrap;';
     if(isPaidEntry){
-      const viewBtn=document.createElement('button'); viewBtn.className='btn btn-outline btn-sm'; viewBtn.textContent='View';
-      viewBtn.style.cssText+='color:#92400E;border-color:#FCD34D;';
-      viewBtn.addEventListener('click',ev=>{ ev.stopPropagation(); openDayModal(e.date); });
-      td.appendChild(viewBtn);
       tr.style.cursor='default';
-      tr.removeEventListener('click',()=>{});
     } else {
       const editBtn=document.createElement('button'); editBtn.className='btn btn-outline btn-sm'; editBtn.textContent='Edit';
       editBtn.addEventListener('click',ev=>{ ev.stopPropagation(); openEditEntryModal(e.id); });
@@ -1041,6 +1036,9 @@ function buildInvoiceDetail(inv){
   backBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> Back to invoices`;
   backBtn.addEventListener('click',()=>{ invoiceDetailId=null; render(); });
   const rightBtns=document.createElement('div'); rightBtns.style.cssText='display:flex;gap:8px;align-items:center;';
+  const printBtn=document.createElement('button'); printBtn.className='btn btn-outline';
+  printBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print / PDF`;
+  printBtn.addEventListener('click',()=>printInvoiceDoc(inv));
   if(inv.status==='paid'){
     // Show lock badge — no edit allowed
     const lockBadge=document.createElement('span');
@@ -1053,8 +1051,6 @@ function buildInvoiceDetail(inv){
     editBtn.addEventListener('click',()=>openInvoiceModal(inv.id));
     rightBtns.appendChild(editBtn);
   }
-  printBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print / PDF`;
-  printBtn.addEventListener('click',()=>printInvoiceDoc(inv));
   rightBtns.appendChild(printBtn); topBar.appendChild(backBtn); topBar.appendChild(rightBtns);
   wrap.appendChild(topBar);
 
