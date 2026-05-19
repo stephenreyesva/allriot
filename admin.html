@@ -848,7 +848,7 @@ function buildInvoiceDetail(inv){
   const rows=[
     [`Rate`, `$${RATE}.00 / hr`],
     [`Subtotal (${parseFloat(inv.hours||0).toFixed(2)}h × $${RATE})`, fmt(subtotal)],
-    [`PayPal fee (4.50% + $0.49)`, fmt(ppFee)],
+    [`PayPal fee `, fmt(ppFee)],
   ];
   rows.forEach(([l,v])=>{
     const r=document.createElement('div'); r.style.cssText='display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;';
@@ -1079,7 +1079,7 @@ function buildModal(){
     // PayPal fee row
     const r3=document.createElement('div'); r3.className='form-row';
     const fg2=document.createElement('div'); fg2.className='form-group';
-    fg2.innerHTML=`<label class="form-label">PayPal Fee <span style="color:var(--hint);font-weight:400">(3.49% + $0.49, editable)</span></label>`;
+    fg2.innerHTML=`<label class="form-label">PayPal Fee <span style="color:var(--hint);font-weight:400">(4.50% + $0.49, editable)</span></label>`;
     const fInp=document.createElement('input'); fInp.className='form-input'; fInp.type='number'; fInp.id='inv-fee';
     fInp.value=md.paypalFee||''; fInp.step='0.01'; fInp.placeholder='Auto-calculated';
     fInp.addEventListener('input',e=>{
