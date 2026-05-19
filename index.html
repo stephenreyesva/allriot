@@ -848,7 +848,6 @@ function buildCalendar(){
   const today=new Date().toISOString().slice(0,10);
 
   for(let i=0;i<firstDay;i++){ const ec=document.createElement('div'); ec.className='cal-day empty'; grid.appendChild(ec); }
-
   for(let d=1;d<=daysInMonth;d++){
     const dateStr=`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dayEntries=entryMap[dateStr]||[];
@@ -861,39 +860,16 @@ function buildCalendar(){
     if(isPaid) cls+=' paid-entry'; else if(hasEntry) cls+=' has-entry';
     if(dateStr===today) cls+=' today';
     cell.className=cls;
-    cell.style.cursor='pointer'; // ALL days clickable
-    cell.title=hasEntry
-      ?`${hours.toFixed(1)}h logged${isPaid?' · Invoice paid':''} — click for details`
-      :'Click to view this day';
-    cell.innerHTML=`<div class="cal-num">${d}</div>`
-      +(hasEntry?`<div class="cal-hours">${hours.toFixed(1)}h</div><div class="cal-dot"></div>`:'<div class="cal-plus">+</div>')
-      +(hasComment?`<div style="position:absolute;bottom:4px;left:5px;font-size:9px;color:var(--amber)">💬</div>`:'');
-    cell.addEventListener('click',()=>{ tsView='daily'; selectedCalDay=dateStr; render(); });
+    if(hasEntry) cell.style.cursor='pointer';
+    cell.title=hasEntry?`${hours.toFixed(1)}h logged${isPaid?' · Invoice paid':''} — click for details`:'';
+    cell.innerHTML=`<div class="cal-num">${d}</div>`+(hasEntry?`<div class="cal-hours">${hours.toFixed(1)}h</div><div class="cal-dot"></div>`:'')+( hasComment?`<div style="position:absolute;bottom:4px;left:5px;font-size:9px;color:var(--amber)">💬</div>`:'');
+    if(hasEntry){ cell.addEventListener('click',()=>{ tsView='daily'; selectedCalDay=dateStr; render(); }); }
     grid.appendChild(cell);
   }
   cal.appendChild(grid); wrap.appendChild(cal);
 
-  // Bi-monthly summary strip — hours only
-  const lastDay=new Date(tsYear,tsMonth+1,0).getDate();
-  const periods=[
-    {label:`1 – 15`,       start:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-01`, end:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-15`},
-    {label:`16 – ${lastDay}`, start:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-16`, end:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`},
-  ];
-  const strip=document.createElement('div'); strip.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px 14px;border-top:1px solid var(--border);';
-  periods.forEach(p=>{
-    const pEntries=data.entries.filter(e=>e.date>=p.start&&e.date<=p.end);
-    const pH=totalHours(pEntries);
-    const sc=document.createElement('div'); sc.style.cssText='background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;';
-    sc.innerHTML=`
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600;margin-bottom:4px">${MONTHS[tsMonth]} ${p.label}</div>
-      <div style="font-size:20px;font-weight:600;color:var(--teal)">${pH.toFixed(1)}<span style="font-size:12px;font-weight:400;color:var(--muted)">h</span></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">${pEntries.length} entr${pEntries.length!==1?'ies':'y'}</div>`;
-    strip.appendChild(sc);
-  });
-  wrap.appendChild(strip);
-
   const legend=document.createElement('div'); legend.className='cal-legend';
-  legend.innerHTML=`<div class="cal-legend-item"><div class="cal-legend-dot l-empty"></div>No entry (click to view)</div><div class="cal-legend-item"><div class="cal-legend-dot l-logged"></div>Hours logged</div><div class="cal-legend-item"><div class="cal-legend-dot l-paid"></div>Invoice paid</div>`;
+  legend.innerHTML=`<div class="cal-legend-item"><div class="cal-legend-dot l-empty"></div>No entry</div><div class="cal-legend-item"><div class="cal-legend-dot l-logged"></div>Hours logged</div><div class="cal-legend-item"><div class="cal-legend-dot l-paid"></div>Invoice paid</div>`;
   wrap.appendChild(legend);
   return wrap;
 }
