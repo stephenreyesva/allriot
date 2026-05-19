@@ -854,17 +854,23 @@ function buildDetailedLog(mEntries,monthH,paidDates){
 
     tr.innerHTML+=`<td style="color:var(--muted);font-size:12px">${fmtTime(e.timeIn)}</td><td style="color:var(--muted);font-size:12px">${fmtTime(e.timeOut)}</td><td>${e.description||'<span style="color:var(--hint)">—</span>'}</td><td style="text-align:right">${parseFloat(e.hours||0).toFixed(1)}h</td><td style="text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}">${fmt((parseFloat(e.hours)||0)*RATE)}</td>`;
 
-    tr.addEventListener('click',ev=>{ if(ev.target.tagName==='BUTTON'||ev.target.closest('button')) return; openEditEntryModal(e.id); });
-
-    // Actions: Edit always; × only if not paid
+    // Actions: View for paid; Edit+Delete for unpaid
     const td=document.createElement('td'); td.style.cssText='text-align:right;white-space:nowrap;';
-    const editBtn=document.createElement('button'); editBtn.className='btn btn-outline btn-sm'; editBtn.textContent='Edit';
-    editBtn.addEventListener('click',ev=>{ ev.stopPropagation(); openEditEntryModal(e.id); });
-    td.appendChild(editBtn);
-    if(!isPaidEntry){
+    if(isPaidEntry){
+      const viewBtn=document.createElement('button'); viewBtn.className='btn btn-outline btn-sm'; viewBtn.textContent='View';
+      viewBtn.style.cssText+='color:#92400E;border-color:#FCD34D;';
+      viewBtn.addEventListener('click',ev=>{ ev.stopPropagation(); openDayModal(e.date); });
+      td.appendChild(viewBtn);
+      tr.style.cursor='default';
+      tr.removeEventListener('click',()=>{});
+    } else {
+      const editBtn=document.createElement('button'); editBtn.className='btn btn-outline btn-sm'; editBtn.textContent='Edit';
+      editBtn.addEventListener('click',ev=>{ ev.stopPropagation(); openEditEntryModal(e.id); });
+      td.appendChild(editBtn);
       const db=document.createElement('button'); db.className='delbtn'; db.innerHTML='&times;'; db.title='Delete entry'; db.style.marginLeft='4px';
       db.addEventListener('click',ev=>{ ev.stopPropagation(); if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); render(); } });
       td.appendChild(db);
+      tr.addEventListener('click',ev=>{ if(ev.target.tagName==='BUTTON'||ev.target.closest('button')) return; openEditEntryModal(e.id); });
     }
     tr.appendChild(td); tbody.appendChild(tr);
   });
@@ -966,24 +972,33 @@ function buildInvoices(){
       numBtn.addEventListener('click',()=>{ invoiceDetailId=inv.id; render(); });
       numTd.appendChild(numBtn);
 
-      // Status dropdown
-      const sc=document.createElement('td');
-      const sel=document.createElement('select'); sel.className='status-sel '+(inv.status||'draft');
-      STATUSES.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=STATUS_LABELS[s]; if(s===inv.status)o.selected=true; sel.appendChild(o); });
-      sel.addEventListener('change',e=>{
-        const newStatus=e.target.value;
-        inv.status=newStatus; sel.className='status-sel '+newStatus; save();
-        toast('Status → '+STATUS_LABELS[newStatus]);
-        if(newStatus==='sent') handleSentStatus(inv);
-        render();
-      });
-      sc.appendChild(sel);
+      const isPaidInv = inv.status==='paid';
 
-      // Notes inline
+      // Status: paid = static badge only; others = dropdown
+      const sc=document.createElement('td');
+      if(isPaidInv){
+        sc.innerHTML=`<span class="badge badge-paid">Paid</span>`;
+      } else {
+        const sel=document.createElement('select'); sel.className='status-sel '+(inv.status||'draft');
+        STATUSES.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=STATUS_LABELS[s]; if(s===inv.status)o.selected=true; sel.appendChild(o); });
+        sel.addEventListener('change',e=>{
+          const newStatus=e.target.value;
+          inv.status=newStatus; sel.className='status-sel '+newStatus; save();
+          toast('Status → '+STATUS_LABELS[newStatus]);
+          if(newStatus==='sent') handleSentStatus(inv);
+          render();
+        });
+        sc.appendChild(sel);
+      }
+
+      // Notes: always editable (even for paid)
       const nc=document.createElement('td');
       const ni=document.createElement('input'); ni.className='ci'; ni.placeholder='Add note…'; ni.value=inv.notes||''; ni.style.minWidth='100px';
       ni.addEventListener('change',e=>{ inv.notes=e.target.value; save(); });
       nc.appendChild(ni);
+
+      // Paid row: amber tint to signal locked
+      if(isPaidInv) tr.style.background='#FFFDF0';
 
       tr.appendChild(numTd);
       const periodTd=document.createElement('td'); periodTd.style.cssText='white-space:nowrap;color:var(--muted);font-size:12px;'; periodTd.textContent=inv.label||'—'; tr.appendChild(periodTd);
@@ -993,10 +1008,17 @@ function buildInvoices(){
       const tTd=document.createElement('td'); tTd.style.cssText='text-align:right;font-weight:600;color:var(--teal);'; tTd.textContent=fmt(grandTotal); tr.appendChild(tTd);
       tr.appendChild(sc); tr.appendChild(nc);
 
+      // Delete: hidden for paid invoices
       const delTd=document.createElement('td'); delTd.style.textAlign='right';
-      const db=document.createElement('button'); db.className='delbtn'; db.innerHTML='&times;';
-      db.addEventListener('click',()=>{ if(confirm('Delete '+inv.number+'?')){ data.invoices=data.invoices.filter(x=>x.id!==inv.id); save(); render(); } });
-      delTd.appendChild(db); tr.appendChild(delTd);
+      if(!isPaidInv){
+        const db=document.createElement('button'); db.className='delbtn'; db.innerHTML='&times;'; db.title='Delete invoice';
+        db.addEventListener('click',()=>{ if(confirm('Delete '+inv.number+'?')){ data.invoices=data.invoices.filter(x=>x.id!==inv.id); save(); render(); } });
+        delTd.appendChild(db);
+      } else {
+        // Lock icon instead of delete for paid
+        delTd.innerHTML=`<span title="Paid – locked" style="color:#FCD34D;font-size:13px;">🔒</span>`;
+      }
+      tr.appendChild(delTd);
       tbody.appendChild(tr);
     });
     tbl.appendChild(tbody); wrap.appendChild(tbl); card.appendChild(wrap);
@@ -1018,14 +1040,22 @@ function buildInvoiceDetail(inv){
   const backBtn=document.createElement('button'); backBtn.className='btn btn-outline';
   backBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> Back to invoices`;
   backBtn.addEventListener('click',()=>{ invoiceDetailId=null; render(); });
-  const rightBtns=document.createElement('div'); rightBtns.style.cssText='display:flex;gap:8px;';
-  const editBtn=document.createElement('button'); editBtn.className='btn btn-outline';
-  editBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit`;
-  editBtn.addEventListener('click',()=>openInvoiceModal(inv.id));
-  const printBtn=document.createElement('button'); printBtn.className='btn btn-primary';
+  const rightBtns=document.createElement('div'); rightBtns.style.cssText='display:flex;gap:8px;align-items:center;';
+  if(inv.status==='paid'){
+    // Show lock badge — no edit allowed
+    const lockBadge=document.createElement('span');
+    lockBadge.style.cssText='font-size:11px;background:#FFFBEB;color:#92400E;border:1px solid #FCD34D;border-radius:100px;padding:4px 10px;font-weight:500;';
+    lockBadge.textContent='🔒 Invoice Paid — View Only';
+    rightBtns.appendChild(lockBadge);
+  } else {
+    const editBtn=document.createElement('button'); editBtn.className='btn btn-outline';
+    editBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit`;
+    editBtn.addEventListener('click',()=>openInvoiceModal(inv.id));
+    rightBtns.appendChild(editBtn);
+  }
   printBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print / PDF`;
   printBtn.addEventListener('click',()=>printInvoiceDoc(inv));
-  rightBtns.appendChild(editBtn); rightBtns.appendChild(printBtn); topBar.appendChild(backBtn); topBar.appendChild(rightBtns);
+  rightBtns.appendChild(printBtn); topBar.appendChild(backBtn); topBar.appendChild(rightBtns);
   wrap.appendChild(topBar);
 
   // Invoice document
@@ -1253,13 +1283,21 @@ function buildModal(){
           </div>
           <div style="font-size:13px;color:var(--text)">${e.description||'<span style="color:var(--hint)">No description</span>'}</div>`;
         const right=document.createElement('div'); right.style.cssText='display:flex;gap:6px;align-items:center;padding-top:2px;';
-        const editBtn=document.createElement('button'); editBtn.className='btn btn-outline btn-sm'; editBtn.textContent='Edit';
-        editBtn.addEventListener('click',()=>openEditEntryModal(e.id));
-        const delBtn=document.createElement('button'); delBtn.className='delbtn'; delBtn.innerHTML='&times;'; delBtn.title='Delete';
-        delBtn.addEventListener('click',()=>{
-          if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); openDayModal(dateStr); }
-        });
-        right.appendChild(editBtn); right.appendChild(delBtn);
+        if(isPaid){
+          // View only — no edit or delete
+          const vBadge=document.createElement('span');
+          vBadge.style.cssText='font-size:10px;color:#92400E;background:#FEF3C7;border:1px solid #FCD34D;border-radius:100px;padding:2px 8px;font-weight:500;white-space:nowrap;';
+          vBadge.textContent='🔒 Locked';
+          right.appendChild(vBadge);
+        } else {
+          const editBtn=document.createElement('button'); editBtn.className='btn btn-outline btn-sm'; editBtn.textContent='Edit';
+          editBtn.addEventListener('click',()=>openEditEntryModal(e.id));
+          const delBtn=document.createElement('button'); delBtn.className='delbtn'; delBtn.innerHTML='&times;'; delBtn.title='Delete';
+          delBtn.addEventListener('click',()=>{
+            if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); openDayModal(dateStr); }
+          });
+          right.appendChild(editBtn); right.appendChild(delBtn);
+        }
         row.appendChild(left); row.appendChild(right); m.appendChild(row);
       });
 
@@ -1269,11 +1307,18 @@ function buildModal(){
       m.appendChild(totBar);
     }
 
-    // Add entry for this day button
-    const addBtn=document.createElement('button'); addBtn.className='btn btn-primary'; addBtn.style.cssText='width:100%;justify-content:center;margin-top:1rem;';
-    addBtn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add entry for this day`;
-    addBtn.addEventListener('click',()=>openEntryModal(dateStr));
-    m.appendChild(addBtn);
+    // Add entry for this day button — hidden if paid
+    if(!isPaid){
+      const addBtn=document.createElement('button'); addBtn.className='btn btn-primary'; addBtn.style.cssText='width:100%;justify-content:center;margin-top:1rem;';
+      addBtn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add entry for this day`;
+      addBtn.addEventListener('click',()=>openEntryModal(dateStr));
+      m.appendChild(addBtn);
+    } else {
+      const lockedNote=document.createElement('div');
+      lockedNote.style.cssText='margin-top:1rem;padding:8px 12px;background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--radius-sm);font-size:12px;color:#92400E;text-align:center;';
+      lockedNote.textContent='🔒 This day is part of a paid invoice and cannot be modified.';
+      m.appendChild(lockedNote);
+    }
 
     const cf=document.createElement('div'); cf.className='modal-footer';
     const cl=document.createElement('button'); cl.className='btn btn-outline'; cl.textContent='Close';
