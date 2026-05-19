@@ -1011,7 +1011,8 @@ function buildInvoicePanel(inv){
   const totRows=[
     {label:`Subtotal (${invHours.toFixed(1)}h × $${RATE}/hr)`, val:fmt(subtotal), bold:false},
   ];
-  if(paypalFee>0) totRows.push({label:'PayPal Fee', val:fmt(paypalFee), bold:false, note:'(deducted by PayPal)'});
+  if(paypalFee>0) totRows.push({label:'PayPal Fee', val:fmt(paypalFee), bold:false, note:''});
+   //if(paypalFee>0) totRows.push({label:'PayPal Fee', val:fmt(paypalFee), bold:false, note:'(deducted by PayPal)'});
   totRows.push({label:'Total', val:fmt(grandTotal), bold:true});
 
   totRows.forEach(row=>{
