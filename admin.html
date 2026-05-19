@@ -649,7 +649,15 @@ function buildTimesheet(){
   periods.forEach(p=>{
     const pEntries=data.entries.filter(e=>e.date>=p.start&&e.date<=p.end);
     const pH=totalHours(pEntries);
-    const matchingInv=data.invoices.find(inv=>inv.label&&inv.label.includes(MONTHS[tsMonth])&&inv.label.includes(String(tsYear))&&inv.label.match(/(\d+)\s*[–\-]\s*(\d+)/)&&(()=>{ const m=inv.label.match(/(\d+)\s*[–\-]\s*(\d+)/); return parseInt(m[1])===parseInt(p.label.split(/\s*[–\-]\s*/)[0]); })());
+    // Safe label match — no regex with en-dash (causes SyntaxError in some browsers)
+    const matchingInv=data.invoices.find(inv=>{
+      if(!inv.label) return false;
+      if(!inv.label.includes(MONTHS[tsMonth])) return false;
+      if(!inv.label.includes(String(tsYear))) return false;
+      // Compare by normalising both labels (replace en-dash and hyphens to plain dash)
+      const norm=s=>s.split('\u2013').join('-').split('\u2014').join('-').replace(/\s+/g,' ').trim();
+      return norm(inv.label)===norm(`${MONTHS[tsMonth]} ${p.label}, ${tsYear}`);
+    });
     const invStatus=matchingInv?matchingInv.status:null;
     const stripCard=document.createElement('div'); stripCard.className='card';
     stripCard.style.cssText='padding:10px 14px;';
@@ -721,22 +729,12 @@ function buildTimesheet(){
       <td style="text-align:right">${parseFloat(e.hours||0).toFixed(2)}h</td>
       <td style="text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}">${fmt((parseFloat(e.hours)||0)*RATE)}</td>`;
 
-    if(isPaidEntry){
-      // LOCKED — paid invoice, no editing or deleting
-      tr.style.cursor='default'; tr.title='';
-      tr.style.background='#FFFBEB';
-      tr.addEventListener('click',ev=>{ if(ev.target.tagName==='BUTTON'||ev.target.closest('button')) return; toast('🔒 This entry is locked — it belongs to a paid invoice.'); });
-      const td=document.createElement('td'); td.style.cssText='text-align:right;';
-      const lockIcon=document.createElement('span'); lockIcon.textContent='🔒'; lockIcon.title='Locked — paid invoice'; lockIcon.style.cssText='font-size:13px;opacity:0.6;cursor:default;';
-      td.appendChild(lockIcon); tr.appendChild(td);
-    } else {
-      tr.addEventListener('click',ev=>{ if(ev.target.tagName==='BUTTON'||ev.target.closest('button')) return; openEditEntryModal(e.id); });
-      const td=document.createElement('td'); td.style.textAlign='right';
-      const db=document.createElement('button'); db.className='delbtn'; db.innerHTML='&times;'; db.title='Delete entry';
-      db.addEventListener('click',ev=>{ ev.stopPropagation(); if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); render(); } });
-      td.appendChild(db); tr.appendChild(td);
-    }
-    tbody.appendChild(tr);
+    tr.addEventListener('click',ev=>{ if(ev.target.tagName==='BUTTON'||ev.target.closest('button')) return; openEditEntryModal(e.id); });
+
+    const td=document.createElement('td'); td.style.textAlign='right';
+    const db=document.createElement('button'); db.className='delbtn'; db.innerHTML='&times;'; db.title='Delete entry';
+    db.addEventListener('click',ev=>{ ev.stopPropagation(); if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); render(); } });
+    td.appendChild(db); tr.appendChild(td); tbody.appendChild(tr);
   });
 
   const tf=document.createElement('tfoot');
@@ -762,10 +760,7 @@ function openDayModal(dateStr){
 function openEditEntryModal(id){
   const entry=data.entries.find(e=>e.id===id);
   if(!entry) return;
-  // Still open modal so user can VIEW, but buildModal will block editing
   modal={type:'editEntry', data:{...entry}, onSave(){
-    const paidDates=getPaidDates();
-    if(paidDates.has(this.data.date)){ toast('🔒 Cannot save — this entry is locked (paid invoice).'); return; }
     const idx=data.entries.findIndex(e=>e.id===this.data.id);
     if(idx>-1){ data.entries[idx]=this.data; save(); modal=null; render(); toast('Entry updated!'); }
   }};
@@ -1132,21 +1127,13 @@ function buildModal(){
           </div>
           <div style="font-size:13px;color:var(--text)">${e.description||'<span style="color:var(--hint)">No description</span>'}</div>`;
         const right=document.createElement('div'); right.style.cssText='display:flex;gap:6px;align-items:center;padding-top:2px;';
-        if(isPaid){
-          const lockSpan=document.createElement('span');
-          lockSpan.textContent='🔒 Locked';
-          lockSpan.title='Entry locked — belongs to a paid invoice';
-          lockSpan.style.cssText='font-size:11px;color:#92400E;background:#FEF3C7;border:1px solid #FCD34D;padding:2px 8px;border-radius:100px;font-weight:500;';
-          right.appendChild(lockSpan);
-        } else {
-          const editBtn=document.createElement('button'); editBtn.className='btn btn-outline btn-sm'; editBtn.textContent='Edit';
-          editBtn.addEventListener('click',()=>openEditEntryModal(e.id));
-          const delBtn=document.createElement('button'); delBtn.className='delbtn'; delBtn.innerHTML='&times;'; delBtn.title='Delete';
-          delBtn.addEventListener('click',()=>{
-            if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); openDayModal(dateStr); }
-          });
-          right.appendChild(editBtn); right.appendChild(delBtn);
-        }
+        const editBtn=document.createElement('button'); editBtn.className='btn btn-outline btn-sm'; editBtn.textContent='Edit';
+        editBtn.addEventListener('click',()=>openEditEntryModal(e.id));
+        const delBtn=document.createElement('button'); delBtn.className='delbtn'; delBtn.innerHTML='&times;'; delBtn.title='Delete';
+        delBtn.addEventListener('click',()=>{
+          if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); openDayModal(dateStr); }
+        });
+        right.appendChild(editBtn); right.appendChild(delBtn);
         row.appendChild(left); row.appendChild(right); m.appendChild(row);
       });
 
@@ -1156,18 +1143,11 @@ function buildModal(){
       m.appendChild(totBar);
     }
 
-    // Add entry — disabled if day belongs to a paid invoice
-    if(isPaid){
-      const lockNote=document.createElement('div');
-      lockNote.style.cssText='margin-top:1rem;background:#FEF3C7;border:1px solid #FCD34D;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:#92400E;display:flex;align-items:center;gap:8px;';
-      lockNote.innerHTML=`🔒 <span><strong>Locked period.</strong> This day is covered by a paid invoice. Entries cannot be added, edited, or deleted.</span>`;
-      m.appendChild(lockNote);
-    } else {
-      const addBtn=document.createElement('button'); addBtn.className='btn btn-primary'; addBtn.style.cssText='width:100%;justify-content:center;margin-top:1rem;';
-      addBtn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add entry for this day`;
-      addBtn.addEventListener('click',()=>openEntryModal(dateStr));
-      m.appendChild(addBtn);
-    }
+    // Add entry for this day button
+    const addBtn=document.createElement('button'); addBtn.className='btn btn-primary'; addBtn.style.cssText='width:100%;justify-content:center;margin-top:1rem;';
+    addBtn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add entry for this day`;
+    addBtn.addEventListener('click',()=>openEntryModal(dateStr));
+    m.appendChild(addBtn);
 
     const cf=document.createElement('div'); cf.className='modal-footer';
     const cl=document.createElement('button'); cl.className='btn btn-outline'; cl.textContent='Close';
@@ -1175,40 +1155,11 @@ function buildModal(){
     ov.appendChild(m); return ov;
   }
 
-  // Edit existing entry — block if locked
+  // Edit existing entry
   if(modal.type==='editEntry'){
-    const paidDates=getPaidDates();
-    const isLocked=paidDates.has(modal.data.date);
-    m.innerHTML=`<div class="modal-title">${isLocked?'View Entry (Locked)':'Edit Entry'}</div>`;
-    if(isLocked){
-      const lockBanner=document.createElement('div');
-      lockBanner.style.cssText='background:#FEF3C7;border:1px solid #FCD34D;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:1rem;display:flex;align-items:center;gap:8px;';
-      lockBanner.innerHTML=`🔒 <span><strong>This entry is locked.</strong> It belongs to a paid invoice and cannot be edited.</span>`;
-      m.appendChild(lockBanner);
-      // Show read-only view
-      const info=document.createElement('div'); info.style.cssText='display:grid;gap:8px;font-size:13px;';
-      const d=modal.data;
-      info.innerHTML=`
-        <div style="display:flex;gap:8px;">
-          <span style="color:var(--muted);min-width:90px">Date:</span><strong>${fmtDate(d.date)}</strong>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <span style="color:var(--muted);min-width:90px">Time:</span><strong>${fmtTime(d.timeIn)} – ${fmtTime(d.timeOut)}</strong>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <span style="color:var(--muted);min-width:90px">Hours:</span><strong>${parseFloat(d.hours||0).toFixed(2)}h &nbsp;·&nbsp; ${fmt((parseFloat(d.hours)||0)*RATE)}</strong>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <span style="color:var(--muted);min-width:90px">Description:</span><span>${d.description||'—'}</span>
-        </div>`;
-      m.appendChild(info);
-      const cf=document.createElement('div'); cf.className='modal-footer';
-      const cl=document.createElement('button'); cl.className='btn btn-outline'; cl.textContent='Close';
-      cl.addEventListener('click',()=>{ modal=null; render(); }); cf.appendChild(cl); m.appendChild(cf);
-    } else {
-      buildEntryForm(m, modal.data, true);
-      m.appendChild(foot('Save changes'));
-    }
+    m.innerHTML=`<div class="modal-title">Edit Entry</div>`;
+    buildEntryForm(m, modal.data, true);
+    m.appendChild(foot('Save changes'));
     ov.appendChild(m); return ov;
   }
 
