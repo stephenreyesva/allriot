@@ -490,32 +490,35 @@ let tsMonth = new Date().getMonth();
 let tsYear  = new Date().getFullYear();
 
 function calcHours(timeIn, timeOut){
-  if(!timeIn || !timeOut) return '';
-  const [ih,im] = timeIn.split(':').map(Number);
-  const [oh,om] = timeOut.split(':').map(Number);
-  const diff = (oh*60+om) - (ih*60+im);
-  if(diff <= 0) return '';
+  if(!timeIn||!timeOut) return '';
+  const [ih,im]=timeIn.split(':').map(Number);
+  const [oh,om]=timeOut.split(':').map(Number);
+  const diff=(oh*60+om)-(ih*60+im);
+  if(diff<=0) return '';
   return (diff/60).toFixed(2);
 }
 
 function fmtTime(t){
   if(!t) return '—';
-  const [h,m] = t.split(':');
-  const hr = parseInt(h);
+  const [h,m]=t.split(':');
+  const hr=parseInt(h);
   return `${hr%12||12}:${m} ${hr<12?'AM':'PM'}`;
 }
 
 function buildTimesheet(){
   const div=document.createElement('div');
 
-  // Header row
+  // ── Page header ───────────────────────────────────────────────
   const hdr=document.createElement('div'); hdr.className='page-header';
   const htxt=document.createElement('div');
-  const totalH=totalHours(data.entries);
-  htxt.innerHTML=`<div class="page-title">Timesheet</div><div class="page-sub">Rate: $${RATE}/hr &middot; ${totalH.toFixed(1)} hrs total &middot; ${fmt(totalH*RATE)}</div>`;
+  const mEntries=getMonthEntries(tsMonth,tsYear);
+  const monthH=totalHours(mEntries);
+  htxt.innerHTML=`<div class="page-title">Timesheet</div><div class="page-sub">Rate: $${RATE}/hr &middot; ${MONTHS[tsMonth]} ${tsYear}: ${monthH.toFixed(2)}h &middot; ${fmt(monthH*RATE)}</div>`;
   hdr.appendChild(htxt);
 
   const controls=document.createElement('div'); controls.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+
+  // Month + Year selectors
   const mSel=document.createElement('select'); mSel.className='form-select'; mSel.style.cssText='width:auto;padding:5px 8px;font-size:12px;';
   MONTHS.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m; if(i===tsMonth)o.selected=true; mSel.appendChild(o); });
   mSel.addEventListener('change',e=>{ tsMonth=parseInt(e.target.value); render(); });
@@ -523,42 +526,53 @@ function buildTimesheet(){
   const curY=new Date().getFullYear();
   for(let y=curY-2;y<=curY+1;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===tsYear)o.selected=true; ySel.appendChild(o); }
   ySel.addEventListener('change',e=>{ tsYear=parseInt(e.target.value); render(); });
+
+  // Add entry button
   const ab=document.createElement('button'); ab.className='btn btn-primary btn-sm';
   ab.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add entry`;
   ab.addEventListener('click',()=>openEntryModal());
+
+  // Print button
   const pb=document.createElement('button'); pb.className='btn btn-outline btn-sm';
   pb.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print`;
   pb.addEventListener('click',()=>printTimesheetDoc(null));
+
   controls.appendChild(mSel); controls.appendChild(ySel); controls.appendChild(ab); controls.appendChild(pb);
   hdr.appendChild(controls);
   div.appendChild(hdr);
 
-  // Month entries
-  const monthEntries=data.entries.filter(e=>{
-    if(!e.date) return false;
-    const d=new Date(e.date+'T00:00:00');
-    return d.getMonth()===tsMonth && d.getFullYear()===tsYear;
-  });
-  const monthH=totalHours(monthEntries);
-
-  // Calendar card
+  // ── Calendar card ─────────────────────────────────────────────
   const calWrap=document.createElement('div'); calWrap.className='card'; calWrap.style.marginBottom='1.25rem';
   const calHdr=document.createElement('div'); calHdr.className='card-header';
-  calHdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear}</div><div style="font-size:12px;color:var(--muted)">${monthH.toFixed(2)} hrs &middot; ${fmt(monthH*RATE)}</div>`;
+  calHdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear}</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:12px;color:var(--muted)">${monthH.toFixed(2)}h &middot; ${fmt(monthH*RATE)}</span>
+    </div>`;
   calWrap.appendChild(calHdr);
 
   const calBody=document.createElement('div'); calBody.style.padding='1rem';
   const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const grid=document.createElement('div'); grid.style.cssText='display:grid;grid-template-columns:repeat(7,1fr);gap:4px;';
-  dayNames.forEach(d=>{ const dn=document.createElement('div'); dn.style.cssText='text-align:center;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);padding:4px 0;'; dn.textContent=d; grid.appendChild(dn); });
+
+  // Day header labels
+  dayNames.forEach(d=>{
+    const dn=document.createElement('div');
+    dn.style.cssText='text-align:center;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);padding:4px 0;';
+    dn.textContent=d; grid.appendChild(dn);
+  });
 
   const firstDay=new Date(tsYear,tsMonth,1).getDay();
   const daysInMonth=new Date(tsYear,tsMonth+1,0).getDate();
   const todayObj=new Date();
   const paidDates=getPaidDates();
 
-  for(let i=0;i<firstDay;i++){ const blank=document.createElement('div'); blank.style.height='56px'; grid.appendChild(blank); }
+  // Blank leading cells
+  for(let i=0;i<firstDay;i++){
+    const blank=document.createElement('div'); blank.style.cssText='min-height:62px;border-radius:6px;background:transparent;';
+    grid.appendChild(blank);
+  }
 
+  // Day cells — ALL days are clickable
   for(let d=1;d<=daysInMonth;d++){
     const dateStr=`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dayEntries=data.entries.filter(e=>e.date===dateStr);
@@ -568,8 +582,8 @@ function buildTimesheet(){
     const isPaid=hasEntry&&paidDates.has(dateStr);
 
     const cell=document.createElement('div');
-    // Colour priority: paid (yellow) > logged (green) > default
-    let bg, borderColor, numColor, hrsColor;
+    // Colour: paid (yellow) > logged (green) > today (teal outline) > empty (white)
+    let bg,borderColor,numColor,hrsColor;
     if(isPaid){
       bg='#FFFBEB'; borderColor='#FCD34D'; numColor='#92400E'; hrsColor='#92400E';
     } else if(hasEntry){
@@ -579,16 +593,36 @@ function buildTimesheet(){
     } else {
       bg='var(--white)'; borderColor='var(--border)'; numColor='var(--muted)'; hrsColor='var(--muted)';
     }
-    cell.style.cssText=`min-height:56px;border-radius:6px;padding:5px 6px;cursor:${hasEntry?'pointer':'default'};border:1px solid ${borderColor};background:${bg};transition:all 0.12s;${isToday&&!hasEntry?'box-shadow:0 0 0 2px var(--teal);':''}`;
-    if(hasEntry){ cell.title=`${dayEntries.length} entr${dayEntries.length>1?'ies':'y'} · ${dayH.toFixed(2)}h${isPaid?' · Invoice paid ✓':''} — click to edit`; cell.addEventListener('click',()=>openDayModal(dateStr)); }
 
-    const dayNum=document.createElement('div'); dayNum.style.cssText=`font-size:11px;font-weight:${isToday?'700':'500'};color:${numColor};`;
+    const boxShadow=isToday&&!hasEntry?'box-shadow:0 0 0 2px var(--teal);':'';
+    cell.style.cssText=`min-height:62px;border-radius:6px;padding:5px 6px;cursor:pointer;border:1px solid ${borderColor};background:${bg};transition:all 0.12s;${boxShadow}`;
+    cell.title=hasEntry
+      ? `${dayEntries.length} entr${dayEntries.length>1?'ies':'y'} · ${dayH.toFixed(2)}h${isPaid?' · ✓ Invoice paid':''} — click to view/edit`
+      : 'Click to add entry for this day';
+    cell.addEventListener('click',()=>openDayModal(dateStr));
+
+    // Day number
+    const dayNum=document.createElement('div');
+    dayNum.style.cssText=`font-size:11px;font-weight:${isToday?'700':'500'};color:${numColor};`;
     dayNum.textContent=d; cell.appendChild(dayNum);
 
     if(hasEntry){
-      const hrs=document.createElement('div'); hrs.style.cssText=`font-size:11px;font-weight:600;color:${hrsColor};margin-top:3px;`; hrs.textContent=dayH.toFixed(2)+'h'; cell.appendChild(hrs);
-      if(dayEntries.length>1){ const cnt=document.createElement('div'); cnt.style.cssText='font-size:9px;color:var(--teal);margin-top:1px;'; cnt.textContent=dayEntries.length+' entries'; cell.appendChild(cnt); }
-      if(isPaid){ const dot=document.createElement('div'); dot.style.cssText='font-size:9px;color:#92400E;margin-top:2px;font-weight:500;'; dot.textContent='✓ paid'; cell.appendChild(dot); }
+      const hrsEl=document.createElement('div');
+      hrsEl.style.cssText=`font-size:11px;font-weight:600;color:${hrsColor};margin-top:3px;`;
+      hrsEl.textContent=dayH.toFixed(2)+'h'; cell.appendChild(hrsEl);
+      if(dayEntries.length>1){
+        const cnt=document.createElement('div'); cnt.style.cssText='font-size:9px;color:var(--teal-d);margin-top:1px;';
+        cnt.textContent=dayEntries.length+' entries'; cell.appendChild(cnt);
+      }
+      if(isPaid){
+        const paidDot=document.createElement('div'); paidDot.style.cssText='font-size:9px;color:#92400E;margin-top:2px;font-weight:600;';
+        paidDot.textContent='✓ paid'; cell.appendChild(paidDot);
+      }
+    } else {
+      // Empty day: show small + hint
+      const addHint=document.createElement('div');
+      addHint.style.cssText='font-size:10px;color:var(--hint);margin-top:6px;text-align:center;';
+      addHint.textContent='+'; cell.appendChild(addHint);
     }
     grid.appendChild(cell);
   }
@@ -597,51 +631,124 @@ function buildTimesheet(){
   // Legend
   const legend=document.createElement('div'); legend.className='cal-legend';
   legend.innerHTML=`
-    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--white);border-color:var(--border)"></div>No entry</div>
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--white);border-color:var(--border)"></div>No entry (click to add)</div>
     <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--teal-bg);border-color:var(--teal-mid)"></div>Hours logged</div>
     <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#FFFBEB;border-color:#FCD34D"></div>Invoice paid</div>`;
   calBody.appendChild(legend);
+  calWrap.appendChild(calBody);
+  div.appendChild(calWrap);
 
-  calWrap.appendChild(calBody); div.appendChild(calWrap);
+  // ── Bi-monthly summary strip ──────────────────────────────────
+  const lastDay=new Date(tsYear,tsMonth+1,0).getDate();
+  const periods=[
+    {label:`1 – 15`, start:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-01`, end:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-15`},
+    {label:`16 – ${lastDay}`, start:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-16`, end:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-${lastDay}`},
+  ];
+  const summaryStrip=document.createElement('div');
+  summaryStrip.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;';
+  periods.forEach(p=>{
+    const pEntries=data.entries.filter(e=>e.date>=p.start&&e.date<=p.end);
+    const pH=totalHours(pEntries);
+    const matchingInv=data.invoices.find(inv=>inv.label&&inv.label.includes(MONTHS[tsMonth])&&inv.label.includes(String(tsYear))&&inv.label.match(/(\d+)\s*[–\-]\s*(\d+)/)&&(()=>{ const m=inv.label.match(/(\d+)\s*[–\-]\s*(\d+)/); return parseInt(m[1])===parseInt(p.label.split(/\s*[–\-]\s*/)[0]); })());
+    const invStatus=matchingInv?matchingInv.status:null;
+    const stripCard=document.createElement('div'); stripCard.className='card';
+    stripCard.style.cssText='padding:10px 14px;';
+    const statusHtml=invStatus?`<span class="badge badge-${invStatus}" style="font-size:10px">${STATUS_LABELS[invStatus]}</span>`:'<span style="font-size:11px;color:var(--hint)">No invoice</span>';
+    stripCard.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600;margin-bottom:4px">${MONTHS[tsMonth]} ${p.label}</div>
+          <div style="font-size:20px;font-weight:600;color:var(--teal)">${pH.toFixed(2)}<span style="font-size:12px;font-weight:400;color:var(--muted)">h</span></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${fmt(pH*RATE)}</div>
+        </div>
+        <div style="text-align:right">${statusHtml}</div>
+      </div>`;
+    summaryStrip.appendChild(stripCard);
+  });
+  div.appendChild(summaryStrip);
 
-  // Detail table
+  // ── Detailed log table ────────────────────────────────────────
   const card=document.createElement('div'); card.className='card';
   const tblHdr=document.createElement('div'); tblHdr.className='card-header';
-  tblHdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear} — Detailed Log</div><div style="font-size:11px;color:var(--hint)">Click any row to edit</div>`;
+  tblHdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear} — Detailed Log</div><div style="font-size:11px;color:var(--hint)">Click any row or date to edit · ✕ to delete</div>`;
   card.appendChild(tblHdr);
 
-  if(!monthEntries.length){
-    card.innerHTML+=`<div class="empty"><div class="empty-icon">⏱</div><p>No entries for ${MONTHS[tsMonth]} ${tsYear}.</p></div>`;
-  } else {
-    const sorted=[...monthEntries].sort((a,b)=>a.date.localeCompare(b.date));
-    const wrap=document.createElement('div'); wrap.className='table-wrap';
-    const tbl=document.createElement('table');
-    tbl.innerHTML=`<thead><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Description</th><th style="text-align:right">Hours</th><th style="text-align:right">Amount</th><th></th></tr></thead>`;
-    const tbody=document.createElement('tbody');
-    sorted.forEach(e=>{
-      const tr=document.createElement('tr'); tr.style.cursor='pointer'; tr.title='Click to edit';
-      tr.innerHTML=`<td style="white-space:nowrap;color:var(--teal);font-weight:500;text-decoration:underline;text-underline-offset:3px;">${fmtDate(e.date)}</td><td style="color:var(--muted);font-size:12px">${fmtTime(e.timeIn)}</td><td style="color:var(--muted);font-size:12px">${fmtTime(e.timeOut)}</td><td>${e.description||'<span style="color:var(--hint)">—</span>'}</td><td style="text-align:right">${parseFloat(e.hours||0).toFixed(2)}h</td><td style="text-align:right;font-weight:500;color:var(--teal)">${fmt((parseFloat(e.hours)||0)*RATE)}</td>`;
-      tr.addEventListener('click',ev=>{ if(ev.target.classList.contains('delbtn')||ev.target.closest('.delbtn')) return; openEditEntryModal(e.id); });
-      const td=document.createElement('td'); td.style.textAlign='right';
-      const db=document.createElement('button'); db.className='delbtn'; db.innerHTML='&times;'; db.title='Delete';
-      db.addEventListener('click',ev=>{ ev.stopPropagation(); if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); render(); } });
-      td.appendChild(db); tr.appendChild(td); tbody.appendChild(tr);
-    });
-    const tf=document.createElement('tfoot');
-    tf.innerHTML=`<tr><td colspan="4" style="font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.06em;">Month Total</td><td style="text-align:right;font-weight:500">${monthH.toFixed(2)}h</td><td style="text-align:right;font-weight:500;color:var(--teal)">${fmt(monthH*RATE)}</td><td></td></tr>`;
-    tbl.appendChild(tbody); tbl.appendChild(tf); wrap.appendChild(tbl); card.appendChild(wrap);
+  if(!mEntries.length){
+    card.innerHTML+=`<div class="empty"><div class="empty-icon">⏱</div><p>No entries for ${MONTHS[tsMonth]} ${tsYear}.</p><button class="btn btn-primary btn-sm" id="ts-empty-add">Log first entry</button></div>`;
+    div.appendChild(card);
+    setTimeout(()=>{ const b=document.getElementById('ts-empty-add'); if(b) b.addEventListener('click',()=>openEntryModal()); },0);
+    return div;
   }
-  div.appendChild(card); return div;
+
+  const sorted=[...mEntries].sort((a,b)=>a.date.localeCompare(b.date));
+  const wrap=document.createElement('div'); wrap.className='table-wrap';
+  const tbl=document.createElement('table');
+  tbl.innerHTML=`<thead><tr>
+    <th>Date</th><th>Time In</th><th>Time Out</th><th>Description</th>
+    <th style="text-align:right">Hours</th><th style="text-align:right">Amount</th><th></th>
+  </tr></thead>`;
+  const tbody=document.createElement('tbody');
+
+  // Group by date for visual separation
+  let lastDate='';
+  sorted.forEach(e=>{
+    const isPaidEntry=paidDates.has(e.date);
+    const tr=document.createElement('tr'); tr.style.cursor='pointer'; tr.title='Click to edit this entry';
+    if(e.date!==lastDate&&lastDate!==''){
+      tr.style.borderTop='2px solid var(--border)';
+    }
+    lastDate=e.date;
+
+    // Date cell — underlined, clickable to open day modal
+    const dateTd=document.createElement('td');
+    const dateBtn=document.createElement('button');
+    dateBtn.style.cssText='background:none;border:none;cursor:pointer;font-weight:600;font-family:inherit;font-size:13px;padding:0;white-space:nowrap;text-decoration:underline;text-underline-offset:3px;';
+    dateBtn.style.color=isPaidEntry?'#92400E':'var(--teal)';
+    dateBtn.textContent=fmtDate(e.date);
+    dateBtn.title='Click to view/edit all entries for this day';
+    dateBtn.addEventListener('click',ev=>{ ev.stopPropagation(); openDayModal(e.date); });
+    if(isPaidEntry){
+      const paidTag=document.createElement('span');
+      paidTag.style.cssText='font-size:9px;background:#FCD34D;color:#92400E;padding:1px 5px;border-radius:100px;margin-left:5px;font-weight:600;';
+      paidTag.textContent='PAID'; dateTd.appendChild(dateBtn); dateTd.appendChild(paidTag);
+    } else { dateTd.appendChild(dateBtn); }
+    tr.appendChild(dateTd);
+
+    tr.innerHTML+=`
+      <td style="color:var(--muted);font-size:12px">${fmtTime(e.timeIn)}</td>
+      <td style="color:var(--muted);font-size:12px">${fmtTime(e.timeOut)}</td>
+      <td>${e.description||'<span style="color:var(--hint)">—</span>'}</td>
+      <td style="text-align:right">${parseFloat(e.hours||0).toFixed(2)}h</td>
+      <td style="text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}">${fmt((parseFloat(e.hours)||0)*RATE)}</td>`;
+
+    tr.addEventListener('click',ev=>{ if(ev.target.tagName==='BUTTON'||ev.target.closest('button')) return; openEditEntryModal(e.id); });
+
+    const td=document.createElement('td'); td.style.textAlign='right';
+    const db=document.createElement('button'); db.className='delbtn'; db.innerHTML='&times;'; db.title='Delete entry';
+    db.addEventListener('click',ev=>{ ev.stopPropagation(); if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); render(); } });
+    td.appendChild(db); tr.appendChild(td); tbody.appendChild(tr);
+  });
+
+  const tf=document.createElement('tfoot');
+  tf.innerHTML=`<tr>
+    <td colspan="4" style="font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.06em;">Month Total</td>
+    <td style="text-align:right;font-weight:600">${monthH.toFixed(2)}h</td>
+    <td style="text-align:right;font-weight:600;color:var(--teal)">${fmt(monthH*RATE)}</td>
+    <td></td>
+  </tr>`;
+  tbl.appendChild(tbody); tbl.appendChild(tf); wrap.appendChild(tbl); card.appendChild(wrap);
+  div.appendChild(card);
+  return div;
 }
 
-// Click calendar day → list entries for that day with edit/add options
+// ── Click any calendar day → day detail modal ─────────────────
 function openDayModal(dateStr){
-  const entries=data.entries.filter(e=>e.date===dateStr);
+  const entries=data.entries.filter(e=>e.date===dateStr).sort((a,b)=>(a.timeIn||'').localeCompare(b.timeIn||''));
   modal={type:'day', date:dateStr, entries};
   render();
 }
 
-// Open edit modal for an existing entry
+// ── Edit existing entry ───────────────────────────────────────
 function openEditEntryModal(id){
   const entry=data.entries.find(e=>e.id===id);
   if(!entry) return;
@@ -676,7 +783,7 @@ function getEntriesForPeriod(label){
   return data.entries.filter(e=>e.date && e.date>=p.start && e.date<=p.end);
 }
 
-// Calculate PayPal fee (4.50% + $0.49 standard)
+// Calculate PayPal fee (3.49% + $0.49 standard)
 function calcPaypalFee(amount, feeOverride){
   if(feeOverride!==undefined && feeOverride!=='') return parseFloat(feeOverride)||0;
   return Math.round((amount*0.0450+0.49)*100)/100;
@@ -848,7 +955,7 @@ function buildInvoiceDetail(inv){
   const rows=[
     [`Rate`, `$${RATE}.00 / hr`],
     [`Subtotal (${parseFloat(inv.hours||0).toFixed(2)}h × $${RATE})`, fmt(subtotal)],
-    [`PayPal fee `, fmt(ppFee)],
+    [`PayPal fee (3.49% + $0.49)`, fmt(ppFee)],
   ];
   rows.forEach(([l,v])=>{
     const r=document.createElement('div'); r.style.cssText='display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;';
@@ -975,30 +1082,68 @@ function buildModal(){
   const m=document.createElement('div'); m.className='modal';
   const foot=(saveLabel)=>{ const f=document.createElement('div'); f.className='modal-footer'; const c=document.createElement('button'); c.className='btn btn-outline'; c.textContent='Cancel'; c.addEventListener('click',()=>{ modal=null; render(); }); const s=document.createElement('button'); s.className='btn btn-primary'; s.textContent=saveLabel||'Save'; s.addEventListener('click',()=>modal.onSave()); f.appendChild(c); f.appendChild(s); return f; };
 
-  // Day overview modal
+  // ── Day overview modal ────────────────────────────────────────
   if(modal.type==='day'){
-    const dt=new Date(modal.date+'T00:00:00');
-    m.innerHTML=`<div class="modal-title">${dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</div>`;
-    if(!modal.entries.length){
-      const empty=document.createElement('p'); empty.style.cssText='color:var(--muted);font-size:13px;margin-bottom:1rem;'; empty.textContent='No entries for this day yet.'; m.appendChild(empty);
+    const dateStr=modal.date;
+    const dt=new Date(dateStr+'T00:00:00');
+    const dayEntries=data.entries.filter(e=>e.date===dateStr).sort((a,b)=>(a.timeIn||'').localeCompare(b.timeIn||''));
+    const dayH=totalHours(dayEntries);
+    const paidDates=getPaidDates();
+    const isPaid=dayEntries.length>0&&paidDates.has(dateStr);
+
+    // Title row
+    const titleRow=document.createElement('div'); titleRow.style.cssText='display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem;';
+    const titleLeft=document.createElement('div');
+    titleLeft.innerHTML=`<div class="modal-title" style="margin-bottom:4px">${dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</div>`;
+    if(isPaid){
+      const pBadge=document.createElement('span'); pBadge.className='badge badge-paid'; pBadge.textContent='Invoice Paid';
+      titleLeft.appendChild(pBadge);
+    }
+    titleRow.appendChild(titleLeft);
+    m.appendChild(titleRow);
+
+    if(!dayEntries.length){
+      const empty=document.createElement('div'); empty.style.cssText='text-align:center;padding:1.5rem 0;color:var(--muted);font-size:13px;';
+      empty.innerHTML=`<div style="font-size:28px;margin-bottom:8px;opacity:0.3;">⏱</div>No entries for this day.`;
+      m.appendChild(empty);
     } else {
-      modal.entries.forEach(e=>{
-        const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:10px;';
-        const info=document.createElement('div');
-        info.innerHTML=`<div style="font-size:13px;font-weight:500">${fmtTime(e.timeIn)} – ${fmtTime(e.timeOut)}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${e.description||'No description'}</div>`;
-        const right=document.createElement('div'); right.style.cssText='display:flex;align-items:center;gap:8px;white-space:nowrap;';
-        right.innerHTML=`<span style="color:var(--teal);font-weight:500">${parseFloat(e.hours||0).toFixed(2)}h</span>`;
+      // Entries list
+      dayEntries.forEach(e=>{
+        const row=document.createElement('div');
+        row.style.cssText='display:grid;grid-template-columns:1fr auto;align-items:start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);';
+        const left=document.createElement('div');
+        left.innerHTML=`
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+            <span style="font-size:12px;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 7px;">${fmtTime(e.timeIn)} – ${fmtTime(e.timeOut)}</span>
+            <span style="font-size:11px;font-weight:600;color:var(--teal)">${parseFloat(e.hours||0).toFixed(2)}h &nbsp;·&nbsp; ${fmt((parseFloat(e.hours)||0)*RATE)}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text)">${e.description||'<span style="color:var(--hint)">No description</span>'}</div>`;
+        const right=document.createElement('div'); right.style.cssText='display:flex;gap:6px;align-items:center;padding-top:2px;';
         const editBtn=document.createElement('button'); editBtn.className='btn btn-outline btn-sm'; editBtn.textContent='Edit';
         editBtn.addEventListener('click',()=>openEditEntryModal(e.id));
-        right.appendChild(editBtn); row.appendChild(info); row.appendChild(right); m.appendChild(row);
+        const delBtn=document.createElement('button'); delBtn.className='delbtn'; delBtn.innerHTML='&times;'; delBtn.title='Delete';
+        delBtn.addEventListener('click',()=>{
+          if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); openDayModal(dateStr); }
+        });
+        right.appendChild(editBtn); right.appendChild(delBtn);
+        row.appendChild(left); row.appendChild(right); m.appendChild(row);
       });
+
+      // Day total bar
+      const totBar=document.createElement('div'); totBar.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--teal-bg);border-radius:var(--radius-sm);margin-top:10px;';
+      totBar.innerHTML=`<span style="font-size:12px;color:var(--teal-d);text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Day Total</span><span style="font-size:15px;font-weight:700;color:var(--teal-d)">${dayH.toFixed(2)}h &nbsp;·&nbsp; ${fmt(dayH*RATE)}</span>`;
+      m.appendChild(totBar);
     }
-    const addBtn=document.createElement('button'); addBtn.className='btn btn-primary btn-sm'; addBtn.style.marginTop='1rem';
+
+    // Add entry for this day button
+    const addBtn=document.createElement('button'); addBtn.className='btn btn-primary'; addBtn.style.cssText='width:100%;justify-content:center;margin-top:1rem;';
     addBtn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add entry for this day`;
-    addBtn.addEventListener('click',()=>openEntryModal(modal.date));
+    addBtn.addEventListener('click',()=>openEntryModal(dateStr));
     m.appendChild(addBtn);
+
     const cf=document.createElement('div'); cf.className='modal-footer';
-    const cl=document.createElement('button'); cl.className='btn btn-outline'; cl.textContent='Close'; cl.addEventListener('click',()=>{ modal=null; render(); }); cf.appendChild(cl); m.appendChild(cf);
+    const cl=document.createElement('button'); cl.className='btn btn-outline'; cl.textContent='Close';
+    cl.addEventListener('click',()=>{ modal=null; render(); }); cf.appendChild(cl); m.appendChild(cf);
     ov.appendChild(m); return ov;
   }
 
@@ -1079,7 +1224,7 @@ function buildModal(){
     // PayPal fee row
     const r3=document.createElement('div'); r3.className='form-row';
     const fg2=document.createElement('div'); fg2.className='form-group';
-    fg2.innerHTML=`<label class="form-label">PayPal Fee <span style="color:var(--hint);font-weight:400">(4.50% + $0.49, editable)</span></label>`;
+    fg2.innerHTML=`<label class="form-label">PayPal Fee <span style="color:var(--hint);font-weight:400">(3.49% + $0.49, editable)</span></label>`;
     const fInp=document.createElement('input'); fInp.className='form-input'; fInp.type='number'; fInp.id='inv-fee';
     fInp.value=md.paypalFee||''; fInp.step='0.01'; fInp.placeholder='Auto-calculated';
     fInp.addEventListener('input',e=>{
