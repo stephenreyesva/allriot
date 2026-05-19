@@ -145,6 +145,12 @@ tfoot td{padding:10px 14px;font-size:12px;background:var(--bg);}
 
 /* Calendar cell hover */
 .cal-cell-hover:hover{ filter:brightness(0.95); }
+.cal-paid{ background:#FFFBEB!important; border-color:#FCD34D!important; }
+.cal-paid .cal-day-num{ color:#92400E!important; }
+.cal-paid .cal-day-hrs{ color:#92400E!important; }
+.cal-legend{ display:flex; gap:14px; padding:0 1rem 1rem; flex-wrap:wrap; }
+.cal-legend-item{ display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); }
+.cal-legend-dot{ width:10px; height:10px; border-radius:3px; border:1px solid; }
 
 /* Month selector */
 .month-selector{display:flex;align-items:center;gap:6px;}
@@ -161,10 +167,13 @@ tfoot td{padding:10px 14px;font-size:12px;background:var(--bg);}
 
 /* Print */
 @media print{
-  .sidebar,.no-print{display:none!important;}
-  .main{margin-left:0!important;padding:0!important;}
-  .admin-bar,.sync-bar{display:none!important;}
-  .card{border:1px solid #ccc!important;break-inside:avoid;}
+  @page{ size:A4; margin:12mm 10mm 12mm 10mm; }
+  html,body{ width:210mm; margin:0 auto; }
+  .sidebar,.no-print,.admin-bar,.sync-bar{ display:none!important; }
+  .main{ margin-left:0!important; padding:0!important; max-width:100%!important; }
+  .card{ border:1px solid #ccc!important; break-inside:avoid; }
+  /* Invoice detail print: hide back/action bar, show only doc card */
+  .inv-print-hide{ display:none!important; }
 }
 
 /* Responsive */
@@ -209,6 +218,45 @@ function totalHours(arr){ return arr.reduce((s,e)=>s+(parseFloat(e.hours)||0),0)
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); }
 function getMonthEntries(m,y){ return data.entries.filter(e=>{ if(!e.date)return false; const d=new Date(e.date+'T00:00:00'); return d.getMonth()===m&&d.getFullYear()===y; }); }
 
+// ── Auto-filename print ───────────────────────────────────────
+const _defaultTitle='Admin — Stephen Reyes Time Tracker';
+function printWithName(filename){
+  const old=document.title; document.title=filename;
+  window.print();
+  setTimeout(()=>{ document.title=old||_defaultTitle; },500);
+}
+function printInvoiceDoc(inv){
+  const clientSlug=(CLIENT.name+CLIENT.company).replace(/[^a-zA-Z0-9]/g,'').slice(0,20);
+  printWithName((inv.number||'INV')+'-'+clientSlug);
+}
+function printTimesheetDoc(dateStr){
+  let label;
+  if(dateStr){
+    const d=new Date(dateStr+'T00:00:00');
+    label=String(d.getDate()).padStart(2,'0')+String(d.getMonth()+1).padStart(2,'0')+d.getFullYear();
+  } else {
+    label='01'+String(tsMonth+1).padStart(2,'0')+tsYear;
+  }
+  const clientSlug=(CLIENT.name+CLIENT.company).replace(/[^a-zA-Z0-9]/g,'').slice(0,20);
+  printWithName(label+'-'+clientSlug);
+}
+
+// ── Paid dates (for calendar colouring) ──────────────────────
+function getPaidDates(){
+  const paidInvs=data.invoices.filter(i=>i.status==='paid');
+  const paid=new Set();
+  data.entries.forEach(e=>{
+    if(!e.date) return;
+    const covered=paidInvs.some(inv=>{
+      const p=getBiMonthlyPeriods().find(x=>x.label===inv.label);
+      if(!p) return false;
+      return e.date>=p.start && e.date<=p.end;
+    });
+    if(covered) paid.add(e.date);
+  });
+  return paid;
+}
+
 // ── Auth ──────────────────────────────────────────────────────
 async function hashCreds(u,p){
   const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(u.trim()+':'+p));
@@ -249,6 +297,7 @@ async function syncGitHub(){
 
 // ── Render ────────────────────────────────────────────────────
 function render(){
+  loadLocal(); // always re-read so dashboard reflects latest timesheet entries
   const root=document.getElementById('root');
   root.innerHTML='';
   if(!loggedIn){ root.appendChild(buildLogin()); return; }
@@ -373,7 +422,7 @@ function buildDashboard(){
       <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value">${fmt(unpaid)}</div><div class="stat-sub">${data.invoices.filter(i=>i.status!=='paid').length} unpaid invoice(s)</div></div>
     </div>`;
 
-  // Monthly entries
+  // Monthly entries — dates clickable → goes to timesheet day
   const card=document.createElement('div'); card.className='card';
   card.innerHTML=`<div class="card-header"><div class="card-title">${MONTHS[dashMonth]} ${dashYear} — Time Entries</div></div>`;
   const body=document.createElement('div'); body.style.padding='0 1.25rem';
@@ -381,7 +430,30 @@ function buildDashboard(){
   if(!mSorted.length){
     body.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><p>No entries for ${MONTHS[dashMonth]} ${dashYear}. Go to Timesheet to log hours.</p></div>`;
   } else {
-    mSorted.forEach(e=>{ const r=document.createElement('div'); r.className='entry-row-mini'; r.innerHTML=`<div><span style="color:var(--muted);font-size:11px;margin-right:8px">${fmtDate(e.date)}</span>${e.description||'<span style="color:var(--hint)">No description</span>'}</div><div style="white-space:nowrap;color:var(--teal);font-weight:500">${fmt((parseFloat(e.hours)||0)*RATE)}<span style="color:var(--hint);font-weight:400;font-size:11px;margin-left:4px">${e.hours||0}h</span></div>`; body.appendChild(r); });
+    // Group by date
+    const byDate={};
+    mSorted.forEach(e=>{ if(!byDate[e.date])byDate[e.date]=[]; byDate[e.date].push(e); });
+    Object.keys(byDate).sort().reverse().forEach(dateStr=>{
+      const dayEntries=byDate[dateStr];
+      const dayH=totalHours(dayEntries);
+      const firstDesc=dayEntries[0].description||'';
+      const moreLabel=dayEntries.length>1?` +${dayEntries.length-1} more`:'';
+      const r=document.createElement('div'); r.className='entry-row-mini'; r.style.cursor='pointer';
+      r.title='Click to view/edit entries for this day';
+      const left=document.createElement('div'); left.style.cssText='display:flex;align-items:center;gap:8px;';
+      const dateBtn=document.createElement('button');
+      dateBtn.style.cssText='background:none;border:none;cursor:pointer;font-size:11px;color:var(--teal);font-family:inherit;font-weight:500;padding:0;text-decoration:underline;text-underline-offset:3px;';
+      dateBtn.textContent=fmtDate(dateStr);
+      dateBtn.addEventListener('click',ev=>{ ev.stopPropagation(); openDayModal(dateStr); });
+      const descSpan=document.createElement('span'); descSpan.style.cssText='color:var(--muted);font-size:12px;';
+      descSpan.textContent=(firstDesc||'No description')+moreLabel;
+      left.appendChild(dateBtn); left.appendChild(descSpan);
+      const right=document.createElement('div'); right.style.cssText='white-space:nowrap;color:var(--teal);font-weight:500;';
+      right.innerHTML=`${fmt(dayH*RATE)}<span style="color:var(--hint);font-weight:400;font-size:11px;margin-left:4px">${dayH.toFixed(1)}h</span>`;
+      r.appendChild(left); r.appendChild(right);
+      r.addEventListener('click',()=>openDayModal(dateStr));
+      body.appendChild(r);
+    });
     const tot=document.createElement('div'); tot.style.cssText='padding:10px 0;display:flex;justify-content:space-between;font-size:13px;font-weight:500;border-top:1px solid var(--border);margin-top:4px;';
     tot.innerHTML=`<span style="color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:0.06em">Month Total</span><span style="color:var(--teal)">${mH.toFixed(1)}h &nbsp;·&nbsp; ${fmt(mH*RATE)}</span>`;
     body.appendChild(tot);
@@ -392,7 +464,22 @@ function buildDashboard(){
     const ic=document.createElement('div'); ic.className='card'; ic.style.marginTop='1.25rem';
     ic.innerHTML=`<div class="card-header"><div class="card-title">Invoice Overview</div></div>`;
     const ib=document.createElement('div'); ib.style.padding='0 1.25rem';
-    [...data.invoices].reverse().slice(0,6).forEach(inv=>{ const r=document.createElement('div'); r.className='entry-row-mini'; r.innerHTML=`<div>${inv.number}<span class="period-pill">${inv.label||'—'}</span></div><div style="display:flex;align-items:center;gap:10px"><span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span><span style="font-weight:500">${fmt(inv.total||0)}</span></div>`; ib.appendChild(r); });
+    [...data.invoices].reverse().slice(0,6).forEach(inv=>{
+      const r=document.createElement('div'); r.className='entry-row-mini'; r.style.cursor='pointer';
+      r.title='Click to view invoice detail';
+      const left=document.createElement('div'); left.style.cssText='display:flex;align-items:center;gap:6px;';
+      const numBtn=document.createElement('button');
+      numBtn.style.cssText='background:none;border:none;cursor:pointer;font-weight:500;color:var(--teal);font-family:inherit;font-size:13px;padding:0;text-decoration:underline;text-underline-offset:3px;';
+      numBtn.textContent=inv.number;
+      numBtn.addEventListener('click',ev=>{ ev.stopPropagation(); invoiceDetailId=inv.id; page='invoices'; render(); });
+      const pill=document.createElement('span'); pill.className='period-pill'; pill.textContent=inv.label||'—';
+      left.appendChild(numBtn); left.appendChild(pill);
+      const right=document.createElement('div'); right.style.cssText='display:flex;align-items:center;gap:10px;';
+      right.innerHTML=`<span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span><span style="font-weight:500">${fmt(inv.total||0)}</span>`;
+      r.appendChild(left); r.appendChild(right);
+      r.addEventListener('click',()=>{ invoiceDetailId=inv.id; page='invoices'; render(); });
+      ib.appendChild(r);
+    });
     ic.appendChild(ib); div.appendChild(ic);
   }
   return div;
@@ -439,7 +526,10 @@ function buildTimesheet(){
   const ab=document.createElement('button'); ab.className='btn btn-primary btn-sm';
   ab.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add entry`;
   ab.addEventListener('click',()=>openEntryModal());
-  controls.appendChild(mSel); controls.appendChild(ySel); controls.appendChild(ab);
+  const pb=document.createElement('button'); pb.className='btn btn-outline btn-sm';
+  pb.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print`;
+  pb.addEventListener('click',()=>printTimesheetDoc(null));
+  controls.appendChild(mSel); controls.appendChild(ySel); controls.appendChild(ab); controls.appendChild(pb);
   hdr.appendChild(controls);
   div.appendChild(hdr);
 
@@ -465,6 +555,7 @@ function buildTimesheet(){
   const firstDay=new Date(tsYear,tsMonth,1).getDay();
   const daysInMonth=new Date(tsYear,tsMonth+1,0).getDate();
   const todayObj=new Date();
+  const paidDates=getPaidDates();
 
   for(let i=0;i<firstDay;i++){ const blank=document.createElement('div'); blank.style.height='56px'; grid.appendChild(blank); }
 
@@ -474,21 +565,44 @@ function buildTimesheet(){
     const dayH=totalHours(dayEntries);
     const isToday=todayObj.getDate()===d&&todayObj.getMonth()===tsMonth&&todayObj.getFullYear()===tsYear;
     const hasEntry=dayEntries.length>0;
+    const isPaid=hasEntry&&paidDates.has(dateStr);
 
     const cell=document.createElement('div');
-    cell.style.cssText=`min-height:56px;border-radius:6px;padding:5px 6px;cursor:${hasEntry?'pointer':'default'};border:1px solid ${hasEntry?'var(--teal-mid)':isToday?'var(--teal)':'var(--border)'};background:${hasEntry?'var(--teal-bg)':isToday?'#F0FDF9':'var(--white)'};transition:all 0.12s;`;
-    if(hasEntry){ cell.title=`${dayEntries.length} entr${dayEntries.length>1?'ies':'y'} · ${dayH.toFixed(2)}h — click to edit`; cell.addEventListener('click',()=>openDayModal(dateStr)); }
+    // Colour priority: paid (yellow) > logged (green) > default
+    let bg, borderColor, numColor, hrsColor;
+    if(isPaid){
+      bg='#FFFBEB'; borderColor='#FCD34D'; numColor='#92400E'; hrsColor='#92400E';
+    } else if(hasEntry){
+      bg='var(--teal-bg)'; borderColor='var(--teal-mid)'; numColor='var(--teal-d)'; hrsColor='var(--teal-d)';
+    } else if(isToday){
+      bg='#F0FDF9'; borderColor='var(--teal)'; numColor='var(--teal)'; hrsColor='var(--muted)';
+    } else {
+      bg='var(--white)'; borderColor='var(--border)'; numColor='var(--muted)'; hrsColor='var(--muted)';
+    }
+    cell.style.cssText=`min-height:56px;border-radius:6px;padding:5px 6px;cursor:${hasEntry?'pointer':'default'};border:1px solid ${borderColor};background:${bg};transition:all 0.12s;${isToday&&!hasEntry?'box-shadow:0 0 0 2px var(--teal);':''}`;
+    if(hasEntry){ cell.title=`${dayEntries.length} entr${dayEntries.length>1?'ies':'y'} · ${dayH.toFixed(2)}h${isPaid?' · Invoice paid ✓':''} — click to edit`; cell.addEventListener('click',()=>openDayModal(dateStr)); }
 
-    const dayNum=document.createElement('div'); dayNum.style.cssText=`font-size:11px;font-weight:${isToday?'700':'400'};color:${hasEntry?'var(--teal-d)':isToday?'var(--teal)':'var(--muted)'};`;
+    const dayNum=document.createElement('div'); dayNum.style.cssText=`font-size:11px;font-weight:${isToday?'700':'500'};color:${numColor};`;
     dayNum.textContent=d; cell.appendChild(dayNum);
 
     if(hasEntry){
-      const hrs=document.createElement('div'); hrs.style.cssText='font-size:11px;font-weight:600;color:var(--teal-d);margin-top:3px;'; hrs.textContent=dayH.toFixed(2)+'h'; cell.appendChild(hrs);
+      const hrs=document.createElement('div'); hrs.style.cssText=`font-size:11px;font-weight:600;color:${hrsColor};margin-top:3px;`; hrs.textContent=dayH.toFixed(2)+'h'; cell.appendChild(hrs);
       if(dayEntries.length>1){ const cnt=document.createElement('div'); cnt.style.cssText='font-size:9px;color:var(--teal);margin-top:1px;'; cnt.textContent=dayEntries.length+' entries'; cell.appendChild(cnt); }
+      if(isPaid){ const dot=document.createElement('div'); dot.style.cssText='font-size:9px;color:#92400E;margin-top:2px;font-weight:500;'; dot.textContent='✓ paid'; cell.appendChild(dot); }
     }
     grid.appendChild(cell);
   }
-  calBody.appendChild(grid); calWrap.appendChild(calBody); div.appendChild(calWrap);
+  calBody.appendChild(grid);
+
+  // Legend
+  const legend=document.createElement('div'); legend.className='cal-legend';
+  legend.innerHTML=`
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--white);border-color:var(--border)"></div>No entry</div>
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--teal-bg);border-color:var(--teal-mid)"></div>Hours logged</div>
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#FFFBEB;border-color:#FCD34D"></div>Invoice paid</div>`;
+  calBody.appendChild(legend);
+
+  calWrap.appendChild(calBody); div.appendChild(calWrap);
 
   // Detail table
   const card=document.createElement('div'); card.className='card';
@@ -565,7 +679,7 @@ function getEntriesForPeriod(label){
 // Calculate PayPal fee (3.49% + $0.49 standard)
 function calcPaypalFee(amount, feeOverride){
   if(feeOverride!==undefined && feeOverride!=='') return parseFloat(feeOverride)||0;
-  return Math.round((amount*0.0349+0.49)*100)/100;
+  return Math.round((amount*0.0450+0.49)*100)/100;
 }
 
 // ── Invoices page ─────────────────────────────────────────────
@@ -664,10 +778,13 @@ function buildInvoiceDetail(inv){
   backBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> Back to invoices`;
   backBtn.addEventListener('click',()=>{ invoiceDetailId=null; render(); });
   const rightBtns=document.createElement('div'); rightBtns.style.cssText='display:flex;gap:8px;';
+  const editBtn=document.createElement('button'); editBtn.className='btn btn-outline';
+  editBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit`;
+  editBtn.addEventListener('click',()=>openInvoiceModal(inv.id));
   const printBtn=document.createElement('button'); printBtn.className='btn btn-primary';
   printBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print / PDF`;
-  printBtn.addEventListener('click',()=>window.print());
-  rightBtns.appendChild(printBtn); topBar.appendChild(backBtn); topBar.appendChild(rightBtns);
+  printBtn.addEventListener('click',()=>printInvoiceDoc(inv));
+  rightBtns.appendChild(editBtn); rightBtns.appendChild(printBtn); topBar.appendChild(backBtn); topBar.appendChild(rightBtns);
   wrap.appendChild(topBar);
 
   // Invoice document
@@ -684,6 +801,7 @@ function buildInvoiceDetail(inv){
       <div style="font-size:14px;font-weight:500">${PROFILE.name}</div>
       <div style="font-size:12px;color:var(--muted)">${PROFILE.email}</div>
       <div style="font-size:12px;color:var(--muted)">${PROFILE.role}</div>
+      <div style="font-size:11px;color:var(--teal);margin-top:4px"><a href="https://stephenreyesva.github.io/allriot" style="color:var(--teal);text-decoration:none;" target="_blank">stephenreyesva.github.io/allriot</a></div>
     </div>`;
   doc.appendChild(docHdr);
 
