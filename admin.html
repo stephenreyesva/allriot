@@ -393,95 +393,229 @@ function buildSidebar(){
 // ── Dashboard ─────────────────────────────────────────────────
 function buildDashboard(){
   const div=document.createElement('div');
+  const now=new Date();
 
-  // Header with month selector
+  // Always default to current real month/year on first load
+  if(dashMonth===null||dashMonth===undefined) dashMonth=now.getMonth();
+  if(dashYear===null||dashYear===undefined)   dashYear=now.getFullYear();
+
+  // ── Header ──────────────────────────────────────────────────
   const hdr=document.createElement('div'); hdr.className='page-header';
   const htxt=document.createElement('div');
-  htxt.innerHTML=`<div class="page-title">Dashboard</div><div class="page-sub">Monthly Summary</div>`;
+  htxt.innerHTML=`<div class="page-title">Dashboard</div><div class="page-sub">${MONTHS[dashMonth]} ${dashYear}</div>`;
   hdr.appendChild(htxt);
 
   const ms=document.createElement('div'); ms.className='month-selector no-print';
-  const mSel=document.createElement('select');
+  ms.style.cssText='display:flex;gap:6px;align-items:center;';
+
+  const mSel=document.createElement('select'); mSel.className='form-select'; mSel.style.cssText='width:auto;padding:5px 8px;font-size:12px;';
   MONTHS.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m; if(i===dashMonth)o.selected=true; mSel.appendChild(o); });
   mSel.addEventListener('change',e=>{ dashMonth=parseInt(e.target.value); render(); });
-  const ySel=document.createElement('select');
-  const curY=new Date().getFullYear();
-  for(let y=curY-2;y<=curY;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===dashYear)o.selected=true; ySel.appendChild(o); }
+
+  const ySel=document.createElement('select'); ySel.className='form-select'; ySel.style.cssText='width:auto;padding:5px 8px;font-size:12px;';
+  const curY=now.getFullYear();
+  for(let y=curY-2;y<=curY+1;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===dashYear)o.selected=true; ySel.appendChild(o); }
   ySel.addEventListener('change',e=>{ dashYear=parseInt(e.target.value); render(); });
-  ms.appendChild(mSel); ms.appendChild(ySel); hdr.appendChild(ms);
+
+  // Today button — jump back to current month
+  const todayBtn=document.createElement('button'); todayBtn.className='btn btn-outline btn-sm';
+  todayBtn.textContent='Today';
+  todayBtn.addEventListener('click',()=>{ dashMonth=now.getMonth(); dashYear=now.getFullYear(); render(); });
+
+  ms.appendChild(mSel); ms.appendChild(ySel); ms.appendChild(todayBtn);
+  hdr.appendChild(ms);
   div.appendChild(hdr);
 
-  const mEntries=getMonthEntries(dashMonth,dashYear);
-  const allH=totalHours(data.entries), mH=totalHours(mEntries);
-  const unpaid=data.invoices.filter(i=>i.status!=='paid').reduce((s,i)=>s+(parseFloat(i.total)||0),0);
+  // ── Live data — always read fresh from data.entries ──────────
+  // Re-read every render so changes in timesheet instantly show here
+  const mEntries = data.entries.filter(e=>{
+    if(!e.date) return false;
+    const d=new Date(e.date+'T00:00:00');
+    return d.getMonth()===dashMonth && d.getFullYear()===dashYear;
+  });
+  const mH      = totalHours(mEntries);
+  const allH    = totalHours(data.entries);
+  const allUnpaid = data.invoices.filter(i=>i.status!=='paid').reduce((s,i)=>s+(parseFloat(i.total)||0),0);
+  const paidDates = getPaidDates();
 
-  div.innerHTML+=`
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">${MONTHS[dashMonth]} ${dashYear} Hours</div><div class="stat-value teal">${mH.toFixed(1)}</div><div class="stat-sub">${fmt(mH*RATE)} earned</div></div>
-      <div class="stat-card"><div class="stat-label">Total Hours Logged</div><div class="stat-value">${allH.toFixed(1)}</div><div class="stat-sub">All time · ${fmt(allH*RATE)}</div></div>
-      <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value">${fmt(unpaid)}</div><div class="stat-sub">${data.invoices.filter(i=>i.status!=='paid').length} unpaid invoice(s)</div></div>
-    </div>`;
+  // ── Stats row ────────────────────────────────────────────────
+  const sg=document.createElement('div'); sg.className='stats-grid';
 
-  // Monthly entries — dates clickable → goes to timesheet day
+  const statData=[
+    { label:`${MONTHS[dashMonth]} ${dashYear} Hours`, value:mH.toFixed(2), sub:`${fmt(mH*RATE)} earned`, teal:true },
+    { label:'All-Time Hours', value:allH.toFixed(2), sub:`${fmt(allH*RATE)} total earned` },
+    { label:'Outstanding', value:fmt(allUnpaid), sub:`${data.invoices.filter(i=>i.status!=='paid').length} unpaid invoice(s)` },
+  ];
+  statData.forEach(s=>{
+    const c=document.createElement('div'); c.className='stat-card';
+    c.innerHTML=`<div class="stat-label">${s.label}</div><div class="stat-value${s.teal?' teal':''}">${s.value}</div><div class="stat-sub">${s.sub}</div>`;
+    sg.appendChild(c);
+  });
+  div.appendChild(sg);
+
+  // ── Bi-monthly summary strips ────────────────────────────────
+  const lastDay=new Date(dashYear,dashMonth+1,0).getDate();
+  const biPeriods=[
+    { label:`1\u201315`, start:`${dashYear}-${String(dashMonth+1).padStart(2,'0')}-01`, end:`${dashYear}-${String(dashMonth+1).padStart(2,'0')}-15` },
+    { label:`16\u2013${lastDay}`, start:`${dashYear}-${String(dashMonth+1).padStart(2,'0')}-16`, end:`${dashYear}-${String(dashMonth+1).padStart(2,'0')}-${lastDay}` },
+  ];
+  const bGrid=document.createElement('div'); bGrid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;';
+  biPeriods.forEach(p=>{
+    const pEntries=mEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
+    const pH=totalHours(pEntries);
+    // Find matching invoice for this half
+    const matchInv=data.invoices.find(inv=>{
+      if(!inv.label) return false;
+      const norm=s=>s.replace(/\u2013/g,'-').replace(/\s+/g,' ').trim();
+      return norm(inv.label)===norm(`${MONTHS[dashMonth]} ${p.label}, ${dashYear}`);
+    });
+    const statusBadge=matchInv
+      ?`<span class="badge badge-${matchInv.status||'draft'}" style="font-size:10px">${STATUS_LABELS[matchInv.status||'draft']}</span>`
+      :`<span style="font-size:11px;color:var(--hint)">No invoice</span>`;
+    const c=document.createElement('div'); c.className='stat-card';
+    c.style.cssText='cursor:'+(matchInv?'pointer':'default')+';transition:box-shadow 0.12s;';
+    c.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div class="stat-label" style="margin-bottom:0">${MONTHS[dashMonth]} ${p.label}</div>
+        ${statusBadge}
+      </div>
+      <div class="stat-value teal" style="font-size:20px">${pH.toFixed(2)}h</div>
+      <div class="stat-sub">${fmt(pH*RATE)} &nbsp;·&nbsp; ${pEntries.length} entr${pEntries.length!==1?'ies':'y'}</div>`;
+    if(matchInv){
+      c.title=`Click to open ${matchInv.number}`;
+      c.addEventListener('mouseenter',()=>c.style.boxShadow='0 0 0 2px var(--teal)');
+      c.addEventListener('mouseleave',()=>c.style.boxShadow='none');
+      c.addEventListener('click',()=>{ invoiceDetailId=matchInv.id; page='invoices'; render(); });
+    }
+    bGrid.appendChild(c);
+  });
+  div.appendChild(bGrid);
+
+  // ── Time log — grouped by date, each date clickable ──────────
   const card=document.createElement('div'); card.className='card';
-  card.innerHTML=`<div class="card-header"><div class="card-title">${MONTHS[dashMonth]} ${dashYear} — Time Entries</div></div>`;
+  const chdr=document.createElement('div'); chdr.className='card-header';
+  chdr.innerHTML=`<div class="card-title">${MONTHS[dashMonth]} ${dashYear} — Time Log</div><div style="font-size:12px;color:var(--muted);font-weight:500">${mH.toFixed(2)}h &nbsp;·&nbsp; ${fmt(mH*RATE)}</div>`;
+  card.appendChild(chdr);
   const body=document.createElement('div'); body.style.padding='0 1.25rem';
+
   const mSorted=[...mEntries].sort((a,b)=>b.date.localeCompare(a.date));
   if(!mSorted.length){
-    body.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><p>No entries for ${MONTHS[dashMonth]} ${dashYear}. Go to Timesheet to log hours.</p></div>`;
+    body.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><p>No entries for ${MONTHS[dashMonth]} ${dashYear}.<br><small style="color:var(--hint)">Go to Timesheet to log your hours.</small></p></div>`;
   } else {
     // Group by date
     const byDate={};
     mSorted.forEach(e=>{ if(!byDate[e.date])byDate[e.date]=[]; byDate[e.date].push(e); });
+
     Object.keys(byDate).sort().reverse().forEach(dateStr=>{
       const dayEntries=byDate[dateStr];
       const dayH=totalHours(dayEntries);
-      const firstDesc=dayEntries[0].description||'';
-      const moreLabel=dayEntries.length>1?` +${dayEntries.length-1} more`:'';
-      const r=document.createElement('div'); r.className='entry-row-mini'; r.style.cursor='pointer';
-      r.title='Click to view/edit entries for this day';
-      const left=document.createElement('div'); left.style.cssText='display:flex;align-items:center;gap:8px;';
+      const isLocked=paidDates.has(dateStr);
+
+      const row=document.createElement('div'); row.className='entry-row-mini';
+      row.style.cssText='cursor:pointer;transition:background 0.1s;padding:10px 0;'+(isLocked?'background:#FFFBEB;':'');
+
+      // Left: clickable date + description summary
+      const left=document.createElement('div'); left.style.cssText='display:flex;align-items:center;gap:8px;min-width:0;';
+
       const dateBtn=document.createElement('button');
-      dateBtn.style.cssText='background:none;border:none;cursor:pointer;font-size:11px;color:var(--teal);font-family:inherit;font-weight:500;padding:0;text-decoration:underline;text-underline-offset:3px;';
+      dateBtn.style.cssText=`background:none;border:none;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;padding:0;white-space:nowrap;text-decoration:underline;text-underline-offset:3px;color:${isLocked?'#92400E':'var(--teal)'};`;
       dateBtn.textContent=fmtDate(dateStr);
-      dateBtn.addEventListener('click',ev=>{ ev.stopPropagation(); openDayModal(dateStr); });
-      const descSpan=document.createElement('span'); descSpan.style.cssText='color:var(--muted);font-size:12px;';
-      descSpan.textContent=(firstDesc||'No description')+moreLabel;
-      left.appendChild(dateBtn); left.appendChild(descSpan);
-      const right=document.createElement('div'); right.style.cssText='white-space:nowrap;color:var(--teal);font-weight:500;';
-      right.innerHTML=`${fmt(dayH*RATE)}<span style="color:var(--hint);font-weight:400;font-size:11px;margin-left:4px">${dayH.toFixed(1)}h</span>`;
-      r.appendChild(left); r.appendChild(right);
-      r.addEventListener('click',()=>openDayModal(dateStr));
-      body.appendChild(r);
+      dateBtn.title='Click to view entries for this day';
+      dateBtn.addEventListener('click',ev=>{
+        ev.stopPropagation();
+        // Sync timesheet month to match so day modal works correctly
+        tsMonth=new Date(dateStr+'T00:00:00').getMonth();
+        tsYear=new Date(dateStr+'T00:00:00').getFullYear();
+        openDayModal(dateStr);
+      });
+
+      if(isLocked){
+        const lockPill=document.createElement('span');
+        lockPill.style.cssText='font-size:9px;background:#FCD34D;color:#92400E;padding:1px 5px;border-radius:100px;font-weight:600;white-space:nowrap;';
+        lockPill.textContent='PAID';
+        left.appendChild(dateBtn); left.appendChild(lockPill);
+      } else {
+        left.appendChild(dateBtn);
+      }
+
+      // Show descriptions summary
+      const allDescs=dayEntries.map(e=>e.description).filter(Boolean);
+      const descText=allDescs.length?allDescs[0]+(allDescs.length>1?` +${allDescs.length-1} more`:''):'No description';
+      const descSpan=document.createElement('span');
+      descSpan.style.cssText='color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px;';
+      descSpan.textContent=descText; descSpan.title=allDescs.join(' / ');
+      left.appendChild(descSpan);
+
+      // Right: earnings + hours
+      const right=document.createElement('div'); right.style.cssText='white-space:nowrap;display:flex;align-items:center;gap:6px;';
+      right.innerHTML=`<span style="font-weight:600;color:${isLocked?'#92400E':'var(--teal)'}">${fmt(dayH*RATE)}</span><span style="color:var(--hint);font-size:11px;">${dayH.toFixed(2)}h</span>`;
+
+      // Entries count pill if more than one
+      if(dayEntries.length>1){
+        const cnt=document.createElement('span');
+        cnt.style.cssText='font-size:10px;background:var(--bg);border:1px solid var(--border);padding:1px 6px;border-radius:100px;color:var(--muted);';
+        cnt.textContent=dayEntries.length+'×';
+        right.insertBefore(cnt, right.firstChild);
+      }
+
+      row.appendChild(left); row.appendChild(right);
+      row.addEventListener('click',()=>{
+        tsMonth=new Date(dateStr+'T00:00:00').getMonth();
+        tsYear=new Date(dateStr+'T00:00:00').getFullYear();
+        openDayModal(dateStr);
+      });
+      body.appendChild(row);
     });
-    const tot=document.createElement('div'); tot.style.cssText='padding:10px 0;display:flex;justify-content:space-between;font-size:13px;font-weight:500;border-top:1px solid var(--border);margin-top:4px;';
-    tot.innerHTML=`<span style="color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:0.06em">Month Total</span><span style="color:var(--teal)">${mH.toFixed(1)}h &nbsp;·&nbsp; ${fmt(mH*RATE)}</span>`;
+
+    // Month total bar
+    const tot=document.createElement('div');
+    tot.style.cssText='padding:10px 0;display:flex;justify-content:space-between;align-items:center;font-size:13px;border-top:2px solid var(--border);margin-top:4px;';
+    tot.innerHTML=`<span style="color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:0.06em;font-weight:500">Month Total</span><span style="color:var(--teal);font-weight:600">${mH.toFixed(2)}h &nbsp;·&nbsp; ${fmt(mH*RATE)}</span>`;
     body.appendChild(tot);
   }
   card.appendChild(body); div.appendChild(card);
 
-  if(data.invoices.length){
-    const ic=document.createElement('div'); ic.className='card'; ic.style.marginTop='1.25rem';
-    ic.innerHTML=`<div class="card-header"><div class="card-title">Invoice Overview</div></div>`;
-    const ib=document.createElement('div'); ib.style.padding='0 1.25rem';
-    [...data.invoices].reverse().slice(0,6).forEach(inv=>{
-      const r=document.createElement('div'); r.className='entry-row-mini'; r.style.cursor='pointer';
-      r.title='Click to view invoice detail';
+  // ── Invoice overview — all invoices, clickable ────────────────
+  const allInvoicesSorted=[...data.invoices].reverse();
+  const ic=document.createElement('div'); ic.className='card'; ic.style.marginTop='1.25rem';
+  const ichdr=document.createElement('div'); ichdr.className='card-header';
+  ichdr.innerHTML=`<div class="card-title">All Invoices</div><div style="font-size:12px;color:var(--muted)">${data.invoices.filter(i=>i.status==='paid').length} paid &nbsp;·&nbsp; ${fmt(allUnpaid)} outstanding</div>`;
+  ic.appendChild(ichdr);
+
+  if(!allInvoicesSorted.length){
+    ic.innerHTML+=`<div class="empty"><div class="empty-icon">🧾</div><p>No invoices yet. Go to Invoices to create one.</p></div>`;
+  } else {
+    const ib=document.createElement('div'); ib.style.cssText='padding:0 1.25rem;';
+    allInvoicesSorted.forEach(inv=>{
+      const ppFee=calcPaypalFee(parseFloat(inv.subtotal||inv.total||0), inv.paypalFee);
+      const grandTotal=parseFloat(inv.subtotal||inv.total||0)+ppFee;
+
+      const row=document.createElement('div'); row.className='entry-row-mini';
+      row.style.cssText='cursor:pointer;transition:background 0.1s;padding:10px 0;';
+      row.addEventListener('mouseenter',()=>row.style.background='var(--bg)');
+      row.addEventListener('mouseleave',()=>row.style.background='');
+
+      // Left: invoice number + period pill
       const left=document.createElement('div'); left.style.cssText='display:flex;align-items:center;gap:6px;';
       const numBtn=document.createElement('button');
-      numBtn.style.cssText='background:none;border:none;cursor:pointer;font-weight:500;color:var(--teal);font-family:inherit;font-size:13px;padding:0;text-decoration:underline;text-underline-offset:3px;';
+      numBtn.style.cssText='background:none;border:none;cursor:pointer;font-weight:600;font-family:inherit;font-size:13px;padding:0;color:var(--teal);text-decoration:underline;text-underline-offset:3px;';
       numBtn.textContent=inv.number;
+      numBtn.title=`Click to open ${inv.number}`;
       numBtn.addEventListener('click',ev=>{ ev.stopPropagation(); invoiceDetailId=inv.id; page='invoices'; render(); });
       const pill=document.createElement('span'); pill.className='period-pill'; pill.textContent=inv.label||'—';
       left.appendChild(numBtn); left.appendChild(pill);
+
+      // Right: status badge + total
       const right=document.createElement('div'); right.style.cssText='display:flex;align-items:center;gap:10px;';
-      right.innerHTML=`<span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span><span style="font-weight:500">${fmt(inv.total||0)}</span>`;
-      r.appendChild(left); r.appendChild(right);
-      r.addEventListener('click',()=>{ invoiceDetailId=inv.id; page='invoices'; render(); });
-      ib.appendChild(r);
+      right.innerHTML=`<span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span><span style="font-weight:600">${fmt(grandTotal)}</span>`;
+
+      row.appendChild(left); row.appendChild(right);
+      row.addEventListener('click',()=>{ invoiceDetailId=inv.id; page='invoices'; render(); });
+      ib.appendChild(row);
     });
-    ic.appendChild(ib); div.appendChild(ic);
+    ic.appendChild(ib);
   }
+  div.appendChild(ic);
   return div;
 }
 
@@ -649,15 +783,7 @@ function buildTimesheet(){
   periods.forEach(p=>{
     const pEntries=data.entries.filter(e=>e.date>=p.start&&e.date<=p.end);
     const pH=totalHours(pEntries);
-    // Safe label match — no regex with en-dash (causes SyntaxError in some browsers)
-    const matchingInv=data.invoices.find(inv=>{
-      if(!inv.label) return false;
-      if(!inv.label.includes(MONTHS[tsMonth])) return false;
-      if(!inv.label.includes(String(tsYear))) return false;
-      // Compare by normalising both labels (replace en-dash and hyphens to plain dash)
-      const norm=s=>s.split('\u2013').join('-').split('\u2014').join('-').replace(/\s+/g,' ').trim();
-      return norm(inv.label)===norm(`${MONTHS[tsMonth]} ${p.label}, ${tsYear}`);
-    });
+    const matchingInv=data.invoices.find(inv=>inv.label&&inv.label.includes(MONTHS[tsMonth])&&inv.label.includes(String(tsYear))&&inv.label.match(/(\d+)\s*[–\-]\s*(\d+)/)&&(()=>{ const m=inv.label.match(/(\d+)\s*[–\-]\s*(\d+)/); return parseInt(m[1])===parseInt(p.label.split(/\s*[–\-]\s*/)[0]); })());
     const invStatus=matchingInv?matchingInv.status:null;
     const stripCard=document.createElement('div'); stripCard.className='card';
     stripCard.style.cssText='padding:10px 14px;';
