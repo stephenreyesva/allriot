@@ -681,12 +681,14 @@ function buildTimesheet(){
 // ── Accordion helper — builds a single date group ─────────────
 // Used by Daily, Weekly, and Monthly accordion views.
 // Shows hours only — NO amounts anywhere.
-function buildAccordionGroup(dateStr, entries){
+function buildAccordionGroup(dateStr, entries, paidDates){
   const dH=totalHours(entries);
   const isOpen=openAccordions.has(dateStr);
   const hasComment=!!(data.comments&&data.comments[dateStr]);
+  const isPaidDay=paidDates&&paidDates.has(dateStr);
 
   const group=document.createElement('div'); group.className='acc-group';
+  if(isPaidDay) group.style.background='#FFFDF0';
 
   // Header row
   const headerEl=document.createElement('div'); headerEl.className='acc-header';
@@ -697,6 +699,12 @@ function buildAccordionGroup(dateStr, entries){
 
   const dateSpan=document.createElement('span'); dateSpan.className='acc-date';
   dateSpan.textContent=fmtDate(dateStr);
+  if(isPaidDay){
+    const pb=document.createElement('span');
+    pb.style.cssText='font-size:9px;background:#FCD34D;color:#92400E;padding:1px 5px;border-radius:100px;margin-left:6px;font-weight:600;vertical-align:middle;';
+    pb.textContent='🔒 PAID';
+    dateSpan.appendChild(pb);
+  }
   if(hasComment){ const dot=document.createElement('span'); dot.className='acc-comment-dot'; dot.textContent='💬'; dateSpan.appendChild(dot); }
 
   const summary=document.createElement('span'); summary.className='acc-summary';
@@ -758,10 +766,22 @@ function buildAccordionGroup(dateStr, entries){
 function buildDayCard(dateStr, showBackBtn){
   const entries=getDayEntries(dateStr);
   const dH=totalHours(entries);
+  const paidDates=getPaidDates();
+  const isPaidDay=paidDates.has(dateStr)&&entries.length>0;
+
   const card=document.createElement('div'); card.className='card'; card.style.marginBottom='1rem';
+  if(isPaidDay) card.style.borderColor='#FCD34D';
 
   const hdr=document.createElement('div'); hdr.className='card-header';
-  const titleSpan=document.createElement('div'); titleSpan.className='card-title'; titleSpan.textContent=fmtDate(dateStr);
+  if(isPaidDay) hdr.style.background='#FFFDF0';
+  const titleSpan=document.createElement('div'); titleSpan.className='card-title';
+  titleSpan.textContent=fmtDate(dateStr);
+  if(isPaidDay){
+    const pb=document.createElement('span');
+    pb.style.cssText='font-size:10px;background:#FCD34D;color:#92400E;padding:2px 8px;border-radius:100px;margin-left:8px;font-weight:600;vertical-align:middle;';
+    pb.textContent='🔒 Invoice Paid';
+    titleSpan.appendChild(pb);
+  }
   const rightSide=document.createElement('div'); rightSide.style.cssText='display:flex;align-items:center;gap:8px;';
   rightSide.innerHTML=`<span style="font-size:12px;color:var(--muted)">${dH.toFixed(1)}h</span>`;
   if(showBackBtn){
@@ -875,7 +895,8 @@ function buildDailyView(){
   if(!days.length){
     card.innerHTML+=`<div class="empty"><div class="empty-icon">📅</div><p>No entries for this month.</p></div>`;
   } else {
-    days.forEach(dateStr=>{ card.appendChild(buildAccordionGroup(dateStr, byDay[dateStr])); });
+    const paidDates=getPaidDates();
+    days.forEach(dateStr=>{ card.appendChild(buildAccordionGroup(dateStr, byDay[dateStr], paidDates)); });
     // Month total footer
     const totRow=document.createElement('div');
     totRow.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--teal-bg);border-top:2px solid var(--teal-mid);';
@@ -921,7 +942,8 @@ function buildWeeklyView(){
     // Group week's entries by date → accordion groups
     const byDay={};
     entries.forEach(e=>{ if(!byDay[e.date])byDay[e.date]=[]; byDay[e.date].push(e); });
-    Object.keys(byDay).sort().forEach(ds=>{ body.appendChild(buildAccordionGroup(ds, byDay[ds])); });
+    const paidDates=getPaidDates();
+    Object.keys(byDay).sort().forEach(ds=>{ body.appendChild(buildAccordionGroup(ds, byDay[ds], paidDates)); });
   });
 
   // Month total
@@ -944,7 +966,8 @@ function buildMonthlyAccordion(){
 
   const byDay={};
   mEntries.forEach(e=>{ if(!byDay[e.date])byDay[e.date]=[]; byDay[e.date].push(e); });
-  Object.keys(byDay).sort().forEach(ds=>{ div.appendChild(buildAccordionGroup(ds, byDay[ds])); });
+  const paidDates=getPaidDates();
+  Object.keys(byDay).sort().forEach(ds=>{ div.appendChild(buildAccordionGroup(ds, byDay[ds], paidDates)); });
 
   const totRow=document.createElement('div');
   totRow.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--teal-bg);border-top:2px solid var(--teal-mid);';
@@ -1021,13 +1044,24 @@ function buildInvoices(){
     const tbody=document.createElement('tbody');
     [...data.invoices].reverse().forEach(inv=>{
       const tr=document.createElement('tr');
+      const isPaidInv=inv.status==='paid';
+      if(isPaidInv) tr.style.background='#FFFDF0';
+
       const numTd=document.createElement('td');
       const numBtn=document.createElement('button');
       numBtn.style.cssText='background:none;border:none;cursor:pointer;font-weight:600;color:var(--teal);font-family:inherit;font-size:13px;padding:0;text-decoration:underline;text-underline-offset:3px;';
       numBtn.textContent=inv.number;
       numBtn.title='Click to view invoice details';
       numBtn.addEventListener('click',()=>{ selectedInvoice=inv; render(); });
-      numTd.appendChild(numBtn); tr.appendChild(numTd);
+      numTd.appendChild(numBtn);
+      if(isPaidInv){
+        const lk=document.createElement('span');
+        lk.style.cssText='font-size:11px;margin-left:5px;vertical-align:middle;';
+        lk.textContent='🔒';
+        lk.title='Invoice paid — view only';
+        numTd.appendChild(lk);
+      }
+      tr.appendChild(numTd);
       const periodTd=document.createElement('td'); periodTd.style.cssText='white-space:nowrap;color:var(--muted);font-size:12px;'; periodTd.textContent=inv.label||'—';
       const hrsTd=document.createElement('td'); hrsTd.style.cssText='text-align:right;'; hrsTd.textContent=`${parseFloat(inv.hours||0).toFixed(1)}h`;
       const amtTd=document.createElement('td'); amtTd.style.cssText='text-align:right;font-weight:500;color:var(--teal);'; amtTd.textContent=fmt(inv.total||0);
@@ -1067,10 +1101,12 @@ function buildInvoicePanel(inv){
 
   // Screen header
   const phdr=document.createElement('div'); phdr.className='inv-panel-header no-print';
-  phdr.innerHTML=`<div><div class="inv-panel-title">${inv.number}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${inv.label||'—'}</div></div>`;
+  if(inv.status==='paid') phdr.style.background='#FFFDF0';
+  const pTitleWrap=document.createElement('div');
+  pTitleWrap.innerHTML=`<div class="inv-panel-title">${inv.number}${inv.status==='paid'?' <span style="font-size:10px;background:#FCD34D;color:#92400E;padding:2px 8px;border-radius:100px;font-weight:600;vertical-align:middle;margin-left:4px;">🔒 Paid</span>':''}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${inv.label||'—'}</div>`;
   const closeBtn=document.createElement('button'); closeBtn.className='inv-close no-print'; closeBtn.innerHTML='&times;';
   closeBtn.addEventListener('click',()=>{ selectedInvoice=null; render(); });
-  phdr.appendChild(closeBtn); panel.appendChild(phdr);
+  phdr.appendChild(pTitleWrap); phdr.appendChild(closeBtn); panel.appendChild(phdr);
 
   // Printable body
   const body=document.createElement('div'); body.className='inv-panel-body inv-print-body';
