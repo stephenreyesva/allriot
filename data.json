@@ -7,7 +7,67 @@
       "timeOut": "22:40",
       "description": "Day 1, Onboarding and training (order processing and customer support)",
       "hours": "1.17"
+    },
+    {
+      "id": "mpdg947qwwji",
+      "date": "2026-05-06",
+      "timeIn": "18:00",
+      "timeOut": "19:18",
+      "description": "Day 2, Training, Order processing incl. spark order, poster order processing via gelato.",
+      "hours": "1.30"
+    },
+    {
+      "id": "mpdg9qlqzubl",
+      "date": "2026-05-08",
+      "timeIn": "17:55",
+      "timeOut": "18:35",
+      "description": "Day 3, Training (order processing and Customer support)",
+      "hours": "0.67"
+    },
+    {
+      "id": "mpdgflnid46o",
+      "date": "2026-05-11",
+      "timeIn": "08:00",
+      "timeOut": "10:50",
+      "description": "Preparation of tool for hands on training (Setting up Gmail, LastPass, Freshdesk, WordPress, Asana and Dropbox)",
+      "hours": "2.83"
+    },
+    {
+      "id": "mpdggibosnh9",
+      "date": "2026-05-11",
+      "timeIn": "18:04",
+      "timeOut": "18:20",
+      "description": "Day 4, Training (sudden power outage)",
+      "hours": "0.27"
+    },
+    {
+      "id": "mpdghev9ngrs",
+      "date": "2026-05-12",
+      "timeIn": "15:56",
+      "timeOut": "17:15",
+      "description": "Day 1 Hands on training",
+      "hours": "1.32"
+    },
+    {
+      "id": "mpdghyfkyfce",
+      "date": "2026-05-14",
+      "timeIn": "18:00",
+      "timeOut": "19:00",
+      "description": "Day 2, Hands on training",
+      "hours": "1.00"
     }
   ],
-  "invoices": []
+  "invoices": [
+    {
+      "id": "mpdgptd4e6g1",
+      "number": "INV-001",
+      "label": "May 1–15, 2026",
+      "hours": 8.56,
+      "subtotal": 42.800000000000004,
+      "paypalFee": 2.42,
+      "status": "draft",
+      "notes": "",
+      "total": 45.220000000000006
+    }
+  ]
 }
