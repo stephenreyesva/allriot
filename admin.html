@@ -261,12 +261,9 @@ let dashMonth  = new Date().getMonth();
 let dashYear   = new Date().getFullYear();
 let dashPeriod = new Date().getDate() <= 15 ? 'A' : 'B';
 
-// ── Token (obfuscated — read-only Contents scope on allriot repo only) ──
-const _t0="ghp_NCiUVI";
-const _t1="LperiBiJDl";
-const _t2="zKfed8BQ2e";
-const _t3="y3ai64JV39";
-function _rt(){ return [_t0,_t1,_t2,_t3].map((c,i)=>i%2===1?c.split('').reverse().join(''):c).join(''); }
+// ── Token — must be uploaded via token.txt each session ──────
+// (hardcoded fallback removed — token expired)
+function _rt(){ return ''; }
 
 // ── Helpers ───────────────────────────────────────────────────
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -343,10 +340,13 @@ const GH_API = `https://api.github.com/repos/${GH.user}/${GH.repo}/contents/data
 const GH_RAW = `https://raw.githubusercontent.com/${GH.user}/${GH.repo}/${GH.branch}/data.json`;
 
 function ghHeaders(){
-  // Prefer token uploaded via txt file (stored in sessionStorage for this session only)
-  const sessionTok = sessionStorage.getItem('sr_gh_tok');
-  const tok = sessionTok || _rt();
+  // Token must be uploaded via token.txt — no fallback
+  const tok = sessionStorage.getItem('sr_gh_tok') || '';
   return { 'Authorization':'token '+tok, 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json' };
+}
+
+function hasToken(){
+  return !!(sessionStorage.getItem('sr_gh_tok'));
 }
 
 // ── Load token from uploaded .txt file ───────────────────────
@@ -386,6 +386,10 @@ async function loadFromGitHub(silent){
 
 // ── PUBLISH to GitHub → client (index.html) sees new records ──
 async function publishToGitHub(){
+  if(!hasToken()){
+    toast('⚠️ No token loaded. Upload your token.txt first, then publish.');
+    return false;
+  }
   const content=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
   try{
     let sha='';
@@ -502,7 +506,7 @@ function buildApp(){
   const tokStatus=document.createElement('span');
   const hasSessTok=!!sessionStorage.getItem('sr_gh_tok');
   tokStatus.style.cssText=`font-size:11px;font-weight:500;${hasSessTok?'color:var(--teal)':'color:var(--hint)'}`;
-  tokStatus.textContent=hasSessTok?'🔑 Token loaded':'🔑 No token file';
+  tokStatus.textContent=hasSessTok?'🔑 Token ready':'⚠️ No token — upload token.txt to publish';
   tokWrap.appendChild(tokStatus);
 
   // Hidden file input
