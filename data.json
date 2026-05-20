@@ -7,6 +7,54 @@
       "timeOut": "19:00",
       "description": "",
       "hours": "1.00"
+    },
+    {
+      "id": "mpdp75bsp156",
+      "date": "2026-05-04",
+      "timeIn": "21:30",
+      "timeOut": "22:40",
+      "description": "Day 1, Onboarding and training (order processing and customer support)",
+      "hours": "1.17"
+    },
+    {
+      "id": "mpdp98zes4qs",
+      "date": "2026-05-06",
+      "timeIn": "18:00",
+      "timeOut": "19:15",
+      "description": "Day 2, Training, Order processing incl. spark order, poster order processing via Gelato",
+      "hours": "1.25"
+    },
+    {
+      "id": "mpdpc5396880",
+      "date": "2026-05-08",
+      "timeIn": "17:55",
+      "timeOut": "18:35",
+      "description": "Day 3, Training order processing and customer support",
+      "hours": "0.67"
+    },
+    {
+      "id": "mpdpn52xl93z",
+      "date": "2026-05-11",
+      "timeIn": "08:00",
+      "timeOut": "10:50",
+      "description": "Preparation and setting up of tools for hands on training (Gmail, LastPass, Freshdesk, WordPress, Asana and Dropbox)",
+      "hours": "2.83"
+    },
+    {
+      "id": "mpdpo6celiu2",
+      "date": "2026-05-11",
+      "timeIn": "18:05",
+      "timeOut": "18:20",
+      "description": "Day 1, Hands on training (Sudden power outage)",
+      "hours": "0.25"
+    },
+    {
+      "id": "mpdpouzteai5",
+      "date": "2026-05-12",
+      "timeIn": "15:55",
+      "timeOut": "17:15",
+      "description": "Day 1, Hands on training ",
+      "hours": "1.33"
     }
   ],
   "invoices": [
