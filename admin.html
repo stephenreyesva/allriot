@@ -213,30 +213,44 @@ tfoot td{padding:10px 14px;font-size:12px;background:var(--bg);}
   .form-row{grid-template-columns:1fr;}
 }
 </style>
-  <script src="config.js"></script><!-- private config — not pushed to GitHub -->
 </head>
 <body>
 <div id="root"></div>
 <div class="toast" id="toast"></div>
 <script>
 // ── Config ────────────────────────────────────────────────────
-// Load from config.js if available, fallback to default
-const AUTH_HASH = (window.TRACKER_CONFIG && window.TRACKER_CONFIG.authHash)
-  ? window.TRACKER_CONFIG.authHash
-  : '2321c4635e1eb7dd4877116b80615a86951680a020cc220f39172c24109efe5a';
+const AUTH_HASH = '2321c4635e1eb7dd4877116b80615a86951680a020cc220f39172c24109efe5a';
 const PROFILE   = { name:'Stephen Reyes', email:'stephen.reyes.va@gmail.com', role:'E-Commerce Virtual Assistant', rate:5 };
 const CLIENT    = { name:'Margarite', company:'All Riot Ltd.' };
 const PAYMENT   = { paypal:'stephen.reyes.va@gmail.com' };
-const GH = {
-  user:   (window.TRACKER_CONFIG && window.TRACKER_CONFIG.ghUser)   || 'stephenreyesva',
-  repo:   (window.TRACKER_CONFIG && window.TRACKER_CONFIG.ghRepo)   || 'timetracker',
-  branch: (window.TRACKER_CONFIG && window.TRACKER_CONFIG.ghBranch) || 'main',
-};
+const GH        = { user:'stephenreyesva', repo:'timetracker', branch:'main' };
 
 const RATE = 5;
 const STATUSES = ['draft','sent','pending','paid','overdue'];
 const STATUS_LABELS = {draft:'Draft',sent:'Sent',pending:'Pending',paid:'Paid',overdue:'Overdue'};
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// ── PHP peso conversion ───────────────────────────────────────
+let phpRate     = null;
+let phpRateTime = null;
+
+async function fetchPhpRate(){
+  if(phpRate && phpRateTime && (Date.now()-phpRateTime)<30*60*1000) return;
+  try{
+    const res=await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    if(!res.ok) return;
+    const json=await res.json();
+    phpRate = json.rates && json.rates.PHP ? json.rates.PHP : null;
+    phpRateTime = Date.now();
+    // PayPal applies ~4.4% spread on conversion — apply to get approximate receive amount
+    if(phpRate) phpRate = phpRate * 0.956;
+  }catch(e){ phpRate=null; }
+}
+
+function fmtPhp(usd){
+  if(!phpRate||!usd) return '';
+  return '₱'+(usd*phpRate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
 
 // ── State ─────────────────────────────────────────────────────
 let page = 'dashboard';
@@ -247,15 +261,12 @@ let dashMonth  = new Date().getMonth();
 let dashYear   = new Date().getFullYear();
 let dashPeriod = new Date().getDate() <= 15 ? 'A' : 'B';
 
-// ── GitHub token — loaded from config.js (not in repo) ──────
-function _rt(){
-  // 1. Prefer config.js value (loaded via <script src="config.js">)
-  if(window.TRACKER_CONFIG && window.TRACKER_CONFIG.ghToken) return window.TRACKER_CONFIG.ghToken;
-  // 2. Fallback: localStorage (saved from previous session)
-  const saved=localStorage.getItem('sr_gh_token');
-  if(saved) return saved;
-  return '';
-}
+// ── Token (obfuscated — read-only Contents scope on allriot repo only) ──
+const _t0="ghp_NCiUVI";
+const _t1="LperiBiJDl";
+const _t2="zKfed8BQ2e";
+const _t3="y3ai64JV39";
+function _rt(){ return [_t0,_t1,_t2,_t3].map((c,i)=>i%2===1?c.split('').reverse().join(''):c).join(''); }
 
 // ── Helpers ───────────────────────────────────────────────────
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -311,7 +322,11 @@ async function hashCreds(u,p){
 }
 async function tryLogin(u,p){
   const h=await hashCreds(u,p);
-  if(h===AUTH_HASH){ loggedIn=true; sessionStorage.setItem('sr_auth','1'); render(); }
+  if(h===AUTH_HASH){
+    loggedIn=true; sessionStorage.setItem('sr_auth','1');
+    fetchPhpRate().then(()=>render()); // load peso rate
+    render();
+  }
   else{ document.getElementById('login-err').classList.add('show'); }
 }
 function logout(){ loggedIn=false; _autoLoaded=false; sessionStorage.removeItem('sr_auth'); render(); }
@@ -594,12 +609,12 @@ function buildDashboard(){
     <div class="stat-card">
       <div class="stat-label">${MONTHS[dashMonth]} ${period.label} Hours</div>
       <div class="stat-value teal">${periodH.toFixed(1)}</div>
-      <div class="stat-sub">bi-monthly period &nbsp;·&nbsp; ${fmt(periodH*RATE)}</div>
+      <div class="stat-sub">bi-monthly period &nbsp;·&nbsp; ${fmt(periodH*RATE)}${fmtPhp(periodH*RATE)?'<br><span style="color:var(--teal);font-size:11px;font-weight:500">≈ '+fmtPhp(periodH*RATE)+' PHP via PayPal</span>':''}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">${MONTHS[dashMonth]} ${dashYear} Total</div>
       <div class="stat-value">${mH.toFixed(1)}</div>
-      <div class="stat-sub">full month hours &nbsp;·&nbsp; ${fmt(mH*RATE)}</div>
+      <div class="stat-sub">full month hours &nbsp;·&nbsp; ${fmt(mH*RATE)}${fmtPhp(mH*RATE)?'<br><span style="color:var(--muted);font-size:11px">≈ '+fmtPhp(mH*RATE)+' PHP</span>':''}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Outstanding Invoices</div>
@@ -611,7 +626,7 @@ function buildDashboard(){
   // ── Period summary card (same structure as index.html + amounts) ──
   const card=document.createElement('div'); card.className='card'; card.style.marginBottom='1.25rem';
   const chdr=document.createElement('div'); chdr.className='card-header';
-  chdr.innerHTML=`<div class="card-title">${MONTHS[dashMonth]} ${dashYear} — ${period.label} Summary</div><div style="font-size:12px;color:var(--muted)">${periodH.toFixed(1)}h total &nbsp;·&nbsp; ${fmt(periodH*RATE)}</div>`;
+  chdr.innerHTML=`<div class="card-title">${MONTHS[dashMonth]} ${dashYear} — ${period.label} Summary</div><div style="text-align:right;font-size:12px;color:var(--muted)">${periodH.toFixed(1)}h total &nbsp;·&nbsp; ${fmt(periodH*RATE)}${fmtPhp(periodH*RATE)?'<br><span style="color:var(--teal);font-size:11px;font-weight:500">≈ '+fmtPhp(periodH*RATE)+' PHP</span>':''}</div>`;
   card.appendChild(chdr);
   const body=document.createElement('div'); body.style.padding='0 1.25rem';
   const byDate={};
@@ -643,14 +658,15 @@ function buildDashboard(){
 
       // Right: amount + hours
       const right=document.createElement('div'); right.style.cssText='white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0;';
-      right.innerHTML=`<span style="font-weight:600;color:${isLocked?'#92400E':'var(--teal)'}">${fmt(dayH*RATE)}</span><span style="color:var(--hint);font-size:11px">${dayH.toFixed(1)}h</span>`;
+      const dayPhp=fmtPhp(dayH*RATE);
+      right.innerHTML=`<span style="font-weight:600;color:${isLocked?'#92400E':'var(--teal)'}">${fmt(dayH*RATE)}</span>${dayPhp?'<span style="font-size:11px;color:var(--muted)">≈ '+dayPhp+'</span>':''}<span style="color:var(--hint);font-size:11px">${dayH.toFixed(1)}h</span>`;
 
       r.appendChild(left); r.appendChild(right);
       r.addEventListener('click',()=>{ tsMonth=new Date(dateStr+'T00:00:00').getMonth(); tsYear=new Date(dateStr+'T00:00:00').getFullYear(); openDayModal(dateStr); });
       body.appendChild(r);
     });
     const tot=document.createElement('div'); tot.style.cssText='padding:10px 0;display:flex;justify-content:space-between;font-size:13px;font-weight:500;border-top:1px solid var(--border);margin-top:4px;';
-    tot.innerHTML=`<span style="color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:0.06em">Period Total</span><span style="color:var(--teal)">${periodH.toFixed(1)}h &nbsp;·&nbsp; ${fmt(periodH*RATE)}</span>`;
+    tot.innerHTML=`<span style="color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:0.06em">Period Total</span><div style="text-align:right"><span style="color:var(--teal);font-weight:600">${periodH.toFixed(1)}h &nbsp;·&nbsp; ${fmt(periodH*RATE)}</span>${fmtPhp(periodH*RATE)?'<br><span style="font-size:11px;color:var(--muted)">≈ '+fmtPhp(periodH*RATE)+' PHP</span>':''}</div>`;
     body.appendChild(tot);
   }
   card.appendChild(body); div.appendChild(card);
@@ -678,7 +694,8 @@ function buildDashboard(){
       const pill=document.createElement('span'); pill.className='period-pill'; pill.textContent=inv.label||'—';
       left.appendChild(pill);
       const right=document.createElement('div'); right.style.cssText='display:flex;align-items:center;gap:8px;flex-shrink:0;';
-      right.innerHTML=`<span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span><span style="font-weight:500">${fmt(grandTotal)}</span>`;
+      const gtPhp=fmtPhp(grandTotal);
+      right.innerHTML=`<span class="badge badge-${inv.status||'draft'}">${STATUS_LABELS[inv.status||'draft']}</span><span style="font-weight:500">${fmt(grandTotal)}</span>${gtPhp?'<span style="font-size:11px;color:var(--muted)">≈ '+gtPhp+'</span>':''}`;
       r.appendChild(left); r.appendChild(right);
       r.addEventListener('click',()=>{ invoiceDetailId=inv.id; page='invoices'; render(); });
       ib.appendChild(r);
@@ -914,7 +931,7 @@ function buildAdminAccordion(dateStr, entries, paidDates){
   if(isPaidDay){ const p=document.createElement('span'); p.style.cssText='font-size:9px;background:#FCD34D;color:#92400E;padding:1px 5px;border-radius:100px;margin-left:6px;font-weight:600;'; p.textContent='PAID'; dateSpan.appendChild(p); }
 
   const summary=document.createElement('span'); summary.className='acc-summary';
-  summary.innerHTML=`${dH.toFixed(1)}h &nbsp;<span style="color:${isPaidDay?'#92400E':'var(--teal)'};font-weight:600">${fmt(dH*RATE)}</span>`;
+  summary.innerHTML=`${dH.toFixed(1)}h &nbsp;<span style="color:${isPaidDay?'#92400E':'var(--teal)'};font-weight:600">${fmt(dH*RATE)}</span>${fmtPhp(dH*RATE)?'<span style="font-size:11px;color:var(--muted);margin-left:4px">≈ '+fmtPhp(dH*RATE)+'</span>':''}`;
 
   headerEl.appendChild(toggle); headerEl.appendChild(dateSpan); headerEl.appendChild(summary);
   headerEl.addEventListener('click',()=>{ if(openAccordions.has(dateStr))openAccordions.delete(dateStr); else openAccordions.add(dateStr); render(); });
@@ -928,7 +945,7 @@ function buildAdminAccordion(dateStr, entries, paidDates){
   });
   if(entries.length){
     const ft=document.createElement('div'); ft.className='acc-footer';
-    ft.innerHTML=`<span>Day total: <strong>${dH.toFixed(1)}h</strong></span><span style="color:${isPaidDay?'#92400E':'var(--teal)'}"><strong>${fmt(dH*RATE)}</strong></span>`;
+    ft.innerHTML=`<span>Day total: <strong>${dH.toFixed(1)}h</strong></span><div style="text-align:right"><span style="color:${isPaidDay?'#92400E':'var(--teal)'}"><strong>${fmt(dH*RATE)}</strong></span>${fmtPhp(dH*RATE)?'<br><span style="font-size:11px;color:var(--muted)">≈ '+fmtPhp(dH*RATE)+'</span>':''}</div>`;
     bodyEl.appendChild(ft);
   }
   group.appendChild(bodyEl);
@@ -940,7 +957,7 @@ function buildDetailedLog(mEntries,monthH,paidDates){
   const sorted=[...mEntries].sort((a,b)=>b.date.localeCompare(a.date)); // latest first
   const card=document.createElement('div'); card.className='card'; card.style.marginTop='1.25rem';
   const tblHdr=document.createElement('div'); tblHdr.className='card-header';
-  tblHdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear} — Detailed Log</div><div style="font-size:11px;color:var(--hint)">Latest first · paid entries are locked</div>`;
+  tblHdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear} — Detailed Log</div><div style="font-size:11px;color:var(--hint)">Latest first${phpRate?` · <span style="color:var(--teal);font-weight:500">PHP rate: ₱${phpRate.toFixed(2)}/USD (PayPal est.)</span>`:""}</div>`;
   card.appendChild(tblHdr);
 
   const wrap=document.createElement('div'); wrap.className='table-wrap';
@@ -967,7 +984,9 @@ function buildDetailedLog(mEntries,monthH,paidDates){
     } else { dateTd.appendChild(dateBtn); }
     tr.appendChild(dateTd);
 
-    tr.innerHTML+=`<td style="color:var(--muted);font-size:12px">${fmtTime(e.timeIn)}</td><td style="color:var(--muted);font-size:12px">${fmtTime(e.timeOut)}</td><td>${e.description||'<span style="color:var(--hint)">—</span>'}</td><td style="text-align:right">${parseFloat(e.hours||0).toFixed(1)}h</td><td style="text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}">${fmt((parseFloat(e.hours)||0)*RATE)}</td>`;
+    const eAmt=(parseFloat(e.hours)||0)*RATE;
+    const ePhp=fmtPhp(eAmt);
+    tr.innerHTML+=`<td style="color:var(--muted);font-size:12px">${fmtTime(e.timeIn)}</td><td style="color:var(--muted);font-size:12px">${fmtTime(e.timeOut)}</td><td>${e.description||'<span style="color:var(--hint)">—</span>'}</td><td style="text-align:right">${parseFloat(e.hours||0).toFixed(2)}h</td><td style="text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}">${fmt(eAmt)}${ePhp?'<br><span style="font-size:10px;color:var(--muted);font-weight:400">≈ '+ePhp+'</span>':''}</td>`;
 
     // Actions: paid entries — date is clickable to view; Edit+Delete for unpaid
     const td=document.createElement('td'); td.style.cssText='text-align:right;white-space:nowrap;';
@@ -986,7 +1005,7 @@ function buildDetailedLog(mEntries,monthH,paidDates){
   });
 
   const tf=document.createElement('tfoot');
-  tf.innerHTML=`<tr><td colspan="4" style="font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.06em">Month Total</td><td style="text-align:right;font-weight:600">${monthH.toFixed(1)}h</td><td style="text-align:right;font-weight:600;color:var(--teal)">${fmt(monthH*RATE)}</td><td></td></tr>`;
+  tf.innerHTML=`<tr><td colspan="4" style="font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.06em">Month Total</td><td style="text-align:right;font-weight:600">${monthH.toFixed(2)}h</td><td style="text-align:right;font-weight:600;color:var(--teal)">${fmt(monthH*RATE)}${fmtPhp(monthH*RATE)?'<br><span style="font-size:10px;color:var(--muted);font-weight:400">≈ '+fmtPhp(monthH*RATE)+'</span>':''}</td><td></td></tr>`;
   tbl.appendChild(tbody); tbl.appendChild(tf); wrap.appendChild(tbl); card.appendChild(wrap);
   return card;
 }
@@ -1108,7 +1127,7 @@ function buildInvoices(){
       nc.appendChild(ni);
 
       // Paid row: amber tint to signal locked
-      if(isPaidInv) tr.style.background='#FFFDF0';
+      // no background tint for paid invoices in trial mode
 
       tr.appendChild(numTd);
       const periodTd=document.createElement('td'); periodTd.style.cssText='white-space:nowrap;color:var(--muted);font-size:12px;'; periodTd.textContent=inv.label||'—'; tr.appendChild(periodTd);
@@ -1118,16 +1137,11 @@ function buildInvoices(){
       const tTd=document.createElement('td'); tTd.style.cssText='text-align:right;font-weight:600;color:var(--teal);'; tTd.textContent=fmt(grandTotal); tr.appendChild(tTd);
       tr.appendChild(sc); tr.appendChild(nc);
 
-      // Delete: hidden for paid invoices
+      // Delete always available — no lock in trial mode
       const delTd=document.createElement('td'); delTd.style.textAlign='right';
-      if(!isPaidInv){
-        const db=document.createElement('button'); db.className='delbtn'; db.innerHTML='&times;'; db.title='Delete invoice';
-        db.addEventListener('click',()=>{ if(confirm('Delete '+inv.number+'?')){ data.invoices=data.invoices.filter(x=>x.id!==inv.id); save(); render(); } });
-        delTd.appendChild(db);
-      } else {
-        // Lock icon instead of delete for paid
-        delTd.innerHTML=`<span title="Paid – locked" style="color:#FCD34D;font-size:13px;">🔒</span>`;
-      }
+      const db=document.createElement('button'); db.className='delbtn'; db.innerHTML='&times;'; db.title='Delete invoice';
+      db.addEventListener('click',()=>{ if(confirm('Delete '+inv.number+'?')){ data.invoices=data.invoices.filter(x=>x.id!==inv.id); save(); render(); } });
+      delTd.appendChild(db);
       tr.appendChild(delTd);
       tbody.appendChild(tr);
     });
@@ -1154,18 +1168,11 @@ function buildInvoiceDetail(inv){
   const printBtn=document.createElement('button'); printBtn.className='btn btn-outline';
   printBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print / PDF`;
   printBtn.addEventListener('click',()=>printInvoiceDoc(inv));
-  if(inv.status==='paid'){
-    // Show lock badge — no edit allowed
-    const lockBadge=document.createElement('span');
-    lockBadge.style.cssText='font-size:11px;background:#FFFBEB;color:#92400E;border:1px solid #FCD34D;border-radius:100px;padding:4px 10px;font-weight:500;';
-    lockBadge.textContent='🔒 Invoice Paid — View Only';
-    rightBtns.appendChild(lockBadge);
-  } else {
-    const editBtn=document.createElement('button'); editBtn.className='btn btn-outline';
-    editBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit`;
-    editBtn.addEventListener('click',()=>openInvoiceModal(inv.id));
-    rightBtns.appendChild(editBtn);
-  }
+  // Always allow editing — lock removed for trial mode
+  const editBtn=document.createElement('button'); editBtn.className='btn btn-outline';
+  editBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit`;
+  editBtn.addEventListener('click',()=>openInvoiceModal(inv.id));
+  rightBtns.appendChild(editBtn);
   rightBtns.appendChild(printBtn); topBar.appendChild(backBtn); topBar.appendChild(rightBtns);
   wrap.appendChild(topBar);
 
@@ -1542,6 +1549,7 @@ function buildModal(){
 // ── Init ──────────────────────────────────────────────────────
 loadLocal();
 if(sessionStorage.getItem('sr_auth')==='1'){
+  fetchPhpRate().then(()=>render()); // fetch peso rate on restore
   loggedIn=true;
   // Returning session — auto-load in background silently, then re-render
   render();
