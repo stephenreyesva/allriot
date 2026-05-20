@@ -42,9 +42,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .inv-doc-body::before{
   content:'';
   position:absolute;
-  top:50%; left:50%;
+  top:58%; left:50%;
   transform:translate(-50%,-50%);
-  width:320px; height:320px;
+  width:280px; height:280px;
   background:url('img/3D_logo.png') center/contain no-repeat;
   opacity:0.045;
   pointer-events:none;
@@ -223,13 +223,48 @@ tfoot td{padding:10px 14px;font-size:12px;background:var(--bg);}
 
 /* Print */
 @media print{
-  @page{ size:A4; margin:12mm 10mm 12mm 10mm; }
-  html,body{ width:210mm; margin:0 auto; }
-  .sidebar,.no-print,.admin-bar,.sync-bar{ display:none!important; }
-  .main{ margin-left:0!important; padding:0!important; max-width:100%!important; }
-  .card{ border:1px solid #ccc!important; break-inside:avoid; }
-  /* Invoice detail print: hide back/action bar, show only doc card */
-  .inv-print-hide{ display:none!important; }
+  @page{size:A4 portrait;margin:14mm 14mm 14mm 14mm;}
+
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  html,body{width:100%;margin:0;padding:0;background:white!important;}
+
+  /* Hide all UI chrome */
+  .sidebar,.no-print,.admin-bar,.sync-bar,
+  .top-header,.inv-print-hide{display:none!important;}
+
+  /* Main area resets */
+  .main{margin-left:0!important;padding:0!important;max-width:100%!important;width:100%!important;}
+
+  /* Invoice detail — hide the back/edit/print toolbar, show only doc */
+  .page-header.no-print{display:none!important;}
+
+  /* Invoice doc card fills full page width */
+  .inv-doc-body{
+    width:100%!important;
+    max-width:100%!important;
+    border-radius:0!important;
+    border:none!important;
+    box-shadow:none!important;
+    padding:0!important;
+  }
+
+  /* Tables full width */
+  .inv-doc-body table{width:100%!important;font-size:10px!important;}
+  .inv-doc-body thead th{font-size:9px!important;}
+
+  /* Watermark on print */
+  .inv-doc-body::before{display:block!important;opacity:0.045!important;}
+
+  /* Color-sensitive */
+  .inv-doc-body thead,
+  .inv-doc-body .badge-paid,
+  .inv-doc-body tfoot{
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+
+  /* Card borders OK on print */
+  .card{break-inside:avoid;}
 }
 
 /* Responsive */
