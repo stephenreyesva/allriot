@@ -1022,7 +1022,7 @@ function getEntriesForPeriod(label){
   return data.entries.filter(e=>e.date && e.date>=p.start && e.date<=p.end);
 }
 
-// Calculate PayPal fee (3.49% + $0.49 standard)
+// Calculate PayPal fee (4.5% + $0.49 standard)
 function calcPaypalFee(amount, feeOverride){
   if(feeOverride!==undefined && feeOverride!=='') return parseFloat(feeOverride)||0;
   return Math.round((amount*0.0450+0.49)*100)/100;
