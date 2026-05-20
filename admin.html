@@ -213,14 +213,6 @@ tfoot td{padding:10px 14px;font-size:12px;background:var(--bg);}
   .form-row{grid-template-columns:1fr;}
 }
 </style>
-<!-- EmailJS SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-<script>
-  // Initialize EmailJS with your public key
-  (function(){
-    emailjs.init({ publicKey: 'YOUR_EMAILJS_PUBLIC_KEY' });
-  })();
-</script>
 </head>
 <body>
 <div id="root"></div>
@@ -234,12 +226,6 @@ const PAYMENT   = { paypal:'stephen.reyes.va@gmail.com' };
 const GH        = { user:'stephenreyesva', repo:'timetracker', branch:'main' };
 
 const RATE = 5;
-// ── EmailJS config ────────────────────────────────────────────
-// Sign up free at https://emailjs.com → get your Service ID, Template ID, Public Key
-const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';   // e.g. 'service_abc123'
-const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';  // e.g. 'template_xyz789'
-const INVOICE_RECIPIENT   = 'steyes04@gmail.com';
-
 const STATUSES = ['draft','sent','pending','paid','overdue'];
 const STATUS_LABELS = {draft:'Draft',sent:'Sent',pending:'Pending',paid:'Paid',overdue:'Overdue'};
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -275,12 +261,9 @@ let dashMonth  = new Date().getMonth();
 let dashYear   = new Date().getFullYear();
 let dashPeriod = new Date().getDate() <= 15 ? 'A' : 'B';
 
-// ── Token (obfuscated — read-only Contents scope on allriot repo only) ──
-const _t0="ghp_NCiUVI";
-const _t1="LperiBiJDl";
-const _t2="zKfed8BQ2e";
-const _t3="y3ai64JV39";
-function _rt(){ return [_t0,_t1,_t2,_t3].map((c,i)=>i%2===1?c.split('').reverse().join(''):c).join(''); }
+// ── Token — must be uploaded via token.txt each session ──────
+// (hardcoded fallback removed — token expired)
+function _rt(){ return ''; }
 
 // ── Helpers ───────────────────────────────────────────────────
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -357,10 +340,13 @@ const GH_API = `https://api.github.com/repos/${GH.user}/${GH.repo}/contents/data
 const GH_RAW = `https://raw.githubusercontent.com/${GH.user}/${GH.repo}/${GH.branch}/data.json`;
 
 function ghHeaders(){
-  // Prefer token uploaded via txt file (stored in sessionStorage for this session only)
-  const sessionTok = sessionStorage.getItem('sr_gh_tok');
-  const tok = sessionTok || _rt();
+  // Token must be uploaded via token.txt — no fallback
+  const tok = sessionStorage.getItem('sr_gh_tok') || '';
   return { 'Authorization':'token '+tok, 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json' };
+}
+
+function hasToken(){
+  return !!(sessionStorage.getItem('sr_gh_tok'));
 }
 
 // ── Load token from uploaded .txt file ───────────────────────
@@ -400,6 +386,10 @@ async function loadFromGitHub(silent){
 
 // ── PUBLISH to GitHub → client (index.html) sees new records ──
 async function publishToGitHub(){
+  if(!hasToken()){
+    toast('⚠️ No token loaded. Upload your token.txt first, then publish.');
+    return false;
+  }
   const content=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
   try{
     let sha='';
@@ -516,7 +506,7 @@ function buildApp(){
   const tokStatus=document.createElement('span');
   const hasSessTok=!!sessionStorage.getItem('sr_gh_tok');
   tokStatus.style.cssText=`font-size:11px;font-weight:500;${hasSessTok?'color:var(--teal)':'color:var(--hint)'}`;
-  tokStatus.textContent=hasSessTok?'🔑 Token loaded':'🔑 No token file';
+  tokStatus.textContent=hasSessTok?'🔑 Token ready':'⚠️ No token — upload token.txt to publish';
   tokWrap.appendChild(tokStatus);
 
   // Hidden file input
@@ -1204,19 +1194,9 @@ function buildInvoices(){
       STATUSES.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=STATUS_LABELS[s]; if(s===inv.status)o.selected=true; sel.appendChild(o); });
       sel.addEventListener('change',e=>{
         const newStatus=e.target.value;
-        const prevStatus=inv.status||'draft';
-        if(newStatus==='sent'){
-          // Intercept — show confirmation modal before committing
-          sel.value=prevStatus; // revert dropdown visually until confirmed
-          showSendConfirmation(inv, ()=>{
-            inv.status='sent'; sel.className='status-sel sent'; save();
-            toast('📧 Invoice marked as Sent');
-            render();
-          });
-          return;
-        }
         inv.status=newStatus; sel.className='status-sel '+newStatus; save();
         toast('Status → '+STATUS_LABELS[newStatus]);
+        if(newStatus==='sent') handleSentStatus(inv);
         render();
       });
       sc.appendChild(sel);
@@ -1359,219 +1339,13 @@ function buildInvoiceDetail(inv){
   return wrap;
 }
 
-// ── Send Confirmation Modal ───────────────────────────────────
-function showSendConfirmation(inv, onConfirm){
-  // Build invoice summary for preview in the modal
-  const ppFee    = parseFloat(inv.paypalFee||0);
-  const subtotal = parseFloat(inv.subtotal||inv.total||0);
-  const grandTotal = parseFloat(inv.total||0);
-
-  const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px;';
-
-  const box=document.createElement('div');
-  box.style.cssText='background:#fff;border-radius:12px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,0.2);overflow:hidden;font-family:inherit;';
-
-  box.innerHTML=`
-    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);">
-      <div style="font-size:16px;font-weight:600;margin-bottom:4px;">📧 Send Invoice to Client?</div>
-      <div style="font-size:12px;color:var(--muted);">This will mark the invoice as <strong>Sent</strong> and email a copy to <strong>${INVOICE_RECIPIENT}</strong>.</div>
-    </div>
-
-    <div style="padding:16px 24px;background:var(--bg);margin:16px 24px;border-radius:8px;font-size:13px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-        <span style="color:var(--muted);">Invoice</span>
-        <strong>${inv.number||'—'}</strong>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-        <span style="color:var(--muted);">Period</span>
-        <span>${inv.label||'—'}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-        <span style="color:var(--muted);">Hours</span>
-        <span>${parseFloat(inv.hours||0).toFixed(2)}h</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-        <span style="color:var(--muted);">Subtotal</span>
-        <span>${fmt(subtotal)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-        <span style="color:var(--muted);">PayPal Fee</span>
-        <span>${fmt(ppFee)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);">
-        <strong style="color:var(--teal-d);">Total Due</strong>
-        <strong style="color:var(--teal);font-size:15px;">${fmt(grandTotal)}</strong>
-      </div>
-    </div>
-
-    <div id="send-status" style="padding:0 24px;font-size:12px;color:var(--muted);min-height:20px;"></div>
-
-    <div style="display:flex;gap:10px;padding:16px 24px 20px;justify-content:flex-end;">
-      <button id="send-cancel-btn" class="btn btn-outline" style="min-width:90px;">Cancel</button>
-      <button id="send-confirm-btn" class="btn btn-primary" style="min-width:140px;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        Send Invoice
-      </button>
-    </div>`;
-
-  document.body.appendChild(overlay);
-  overlay.appendChild(box);
-
-  const cancelBtn  = box.querySelector('#send-cancel-btn');
-  const confirmBtn = box.querySelector('#send-confirm-btn');
-  const statusDiv  = box.querySelector('#send-status');
-
-  function closeModal(){ overlay.remove(); }
-
-  cancelBtn.addEventListener('click', closeModal);
-  overlay.addEventListener('click', e=>{ if(e.target===overlay) closeModal(); });
-
-  confirmBtn.addEventListener('click', async ()=>{
-    confirmBtn.disabled=true;
-    cancelBtn.disabled=true;
-    confirmBtn.textContent='Sending…';
-    statusDiv.textContent='';
-
-    try {
-      await sendInvoiceEmail(inv);
-      statusDiv.innerHTML='<span style="color:var(--teal);">✓ Email sent successfully!</span>';
-      setTimeout(()=>{ closeModal(); onConfirm(); }, 900);
-    } catch(err){
-      console.error('EmailJS error:', err);
-      statusDiv.innerHTML='<span style="color:#DC2626;">⚠️ Email failed — marking Sent anyway. Check EmailJS config.</span>';
-      setTimeout(()=>{ closeModal(); onConfirm(); }, 1800);
-    }
-  });
-}
-
-// ── Build & send invoice email via EmailJS ────────────────────
-async function sendInvoiceEmail(inv){
-  const ppFee     = parseFloat(inv.paypalFee||0);
-  const subtotal  = parseFloat(inv.subtotal||inv.total||0);
-  const grandTotal= parseFloat(inv.total||0);
-
-  // Find timesheet entries for this invoice period
-  const period = getBiMonthlyPeriods().find(p=>p.label===inv.label);
-  const entries = period
-    ? data.entries.filter(e=>e.date>=period.start&&e.date<=period.end).sort((a,b)=>a.date.localeCompare(b.date))
-    : [];
-
-  // Build a clean HTML table of entries for the email body
-  const entriesRows = entries.length
-    ? entries.map(e=>`
-        <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid #eee;white-space:nowrap;">${fmtDate(e.date)}</td>
-          <td style="padding:6px 8px;border-bottom:1px solid #eee;">${e.timeIn||'—'}</td>
-          <td style="padding:6px 8px;border-bottom:1px solid #eee;">${e.timeOut||'—'}</td>
-          <td style="padding:6px 8px;border-bottom:1px solid #eee;">${e.description||'—'}</td>
-          <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right;">${parseFloat(e.hours||0).toFixed(2)}h</td>
-          <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right;color:#0D9488;">${fmt(parseFloat(e.hours||0)*RATE)}</td>
-        </tr>`).join('')
-    : `<tr><td colspan="6" style="padding:12px;text-align:center;color:#9CA3AF;">No entries found for this period.</td></tr>`;
-
-  const invoiceHtml = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;">
-<div style="max-width:600px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-
-  <!-- Header -->
-  <div style="background:#0D9488;padding:24px 32px;display:flex;justify-content:space-between;align-items:center;">
-    <div style="color:#fff;">
-      <div style="font-size:22px;font-weight:700;letter-spacing:0.5px;">INVOICE</div>
-      <div style="font-size:13px;opacity:0.85;margin-top:2px;">${inv.number}</div>
-    </div>
-    <div style="text-align:right;color:#fff;">
-      <div style="font-weight:600;">${PROFILE.name}</div>
-      <div style="font-size:12px;opacity:0.85;">${PROFILE.email}</div>
-      <div style="font-size:12px;opacity:0.85;">${PROFILE.role}</div>
-    </div>
-  </div>
-
-  <!-- Bill To + Period -->
-  <div style="display:flex;padding:24px 32px;background:#F9FAFB;border-bottom:1px solid #E5E7EB;">
-    <div style="flex:1;">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#6B7280;margin-bottom:6px;">Bill To</div>
-      <div style="font-weight:600;font-size:15px;">${CLIENT.name}</div>
-      <div style="font-size:13px;color:#6B7280;">${CLIENT.company}</div>
-    </div>
-    <div style="text-align:right;">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#6B7280;margin-bottom:6px;">Period</div>
-      <div style="font-weight:600;font-size:15px;">${inv.label||'—'}</div>
-      <div style="display:inline-block;background:#DBEAFE;color:#1D4ED8;font-size:11px;font-weight:600;padding:2px 10px;border-radius:100px;margin-top:4px;">SENT</div>
-    </div>
-  </div>
-
-  <!-- Time Log -->
-  <div style="padding:24px 32px;">
-    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#6B7280;margin-bottom:12px;">Time Log Breakdown</div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead>
-        <tr style="background:#F3F4F6;">
-          <th style="padding:8px;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #E5E7EB;">Date</th>
-          <th style="padding:8px;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #E5E7EB;">Time In</th>
-          <th style="padding:8px;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #E5E7EB;">Time Out</th>
-          <th style="padding:8px;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #E5E7EB;">Description</th>
-          <th style="padding:8px;text-align:right;font-weight:600;color:#374151;border-bottom:2px solid #E5E7EB;">Hours</th>
-          <th style="padding:8px;text-align:right;font-weight:600;color:#374151;border-bottom:2px solid #E5E7EB;">Amount</th>
-        </tr>
-      </thead>
-      <tbody>${entriesRows}</tbody>
-    </table>
-  </div>
-
-  <!-- Totals -->
-  <div style="padding:0 32px 24px;display:flex;justify-content:flex-end;">
-    <div style="min-width:260px;">
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #E5E7EB;font-size:13px;">
-        <span style="color:#6B7280;">Rate</span><span>$${RATE}.00 / hr</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #E5E7EB;font-size:13px;">
-        <span style="color:#6B7280;">Subtotal (${parseFloat(inv.hours||0).toFixed(2)}h × $${RATE})</span><span>${fmt(subtotal)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #E5E7EB;font-size:13px;">
-        <span style="color:#6B7280;">PayPal Fee</span><span>${fmt(ppFee)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:10px 14px;background:#F0FDF4;border-radius:8px;margin-top:10px;">
-        <strong style="color:#065F46;">Total Due</strong>
-        <strong style="font-size:17px;color:#0D9488;">${fmt(grandTotal)}</strong>
-      </div>
-    </div>
-  </div>
-
-  <!-- Payment info -->
-  <div style="padding:16px 32px 28px;border-top:1px solid #E5E7EB;">
-    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#6B7280;margin-bottom:8px;">Payment</div>
-    <div style="font-size:13px;">PayPal &nbsp;·&nbsp; <strong>${PAYMENT.paypal}</strong></div>
-    ${inv.notes?`<div style="margin-top:8px;font-size:12px;color:#6B7280;">Note: ${inv.notes}</div>`:''}
-  </div>
-
-  <!-- Footer -->
-  <div style="background:#F3F4F6;padding:16px 32px;text-align:center;font-size:11px;color:#9CA3AF;">
-    ${PROFILE.name} · ${PROFILE.role} · <a href="https://stephenreyesva.github.io/allriot" style="color:#0D9488;">stephenreyesva.github.io/allriot</a>
-  </div>
-
-</div>
-</body>
-</html>`;
-
-  // Send via EmailJS
-  const params = {
-    to_email:       INVOICE_RECIPIENT,
-    to_name:        CLIENT.name,
-    from_name:      PROFILE.name,
-    invoice_number: inv.number||'—',
-    invoice_period: inv.label||'—',
-    invoice_total:  fmt(grandTotal),
-    invoice_html:   invoiceHtml,
-    reply_to:       PROFILE.email,
-  };
-
-  const result = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
-  if(result.status!==200) throw new Error('EmailJS status: '+result.status);
-  return result;
+// Handle "sent" status — placeholder for email sending
+function handleSentStatus(inv){
+  // TODO: configure client email and CC email
+  // Client email: TBD (ask Stephen)
+  // CC email: TBD (allriotva email)
+  toast('📧 Status set to Sent — configure email in settings to auto-send.');
+  // Future: call email API here with invoice details and portal link
 }
 
 // ── Modals ────────────────────────────────────────────────────
