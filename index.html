@@ -795,19 +795,35 @@ function buildAccordionGroup(dateStr, entries, paidDates){
   cb.style.margin='0 14px 10px';
   const existingComment=(data.comments&&data.comments[dateStr])||'';
   cb.innerHTML=`<div class="comment-box-label">💬 Notes / Comments</div>`;
-  const ta=document.createElement('textarea'); ta.className='comment-textarea';
-  ta.placeholder='Add a note or comment for this day…';
-  ta.value=existingComment;
-  const saveRow=document.createElement('div'); saveRow.style.cssText='display:flex;align-items:center;margin-top:6px;';
-  const saveBtn=document.createElement('button'); saveBtn.className='comment-save-btn'; saveBtn.textContent='Save note';
-  const savedMsg=document.createElement('span'); savedMsg.className='comment-saved'; savedMsg.textContent='Saved ✓';
-  saveBtn.addEventListener('click',()=>{
-    saveComment(dateStr,ta.value);
-    savedMsg.classList.add('show');
-    setTimeout(()=>savedMsg.classList.remove('show'),2000);
-  });
-  saveRow.appendChild(saveBtn); saveRow.appendChild(savedMsg);
-  cb.appendChild(ta); cb.appendChild(saveRow);
+
+  if(isPaidDay){
+    // Paid — read-only: show saved comment text, or a "no comments" note
+    const ro=document.createElement('div');
+    if(existingComment){
+      ro.style.cssText='font-size:12px;color:var(--text);background:var(--white);border:1px solid #FDE68A;border-radius:4px;padding:7px 9px;white-space:pre-wrap;line-height:1.5;';
+      ro.textContent=existingComment;
+    } else {
+      ro.style.cssText='font-size:12px;color:var(--hint);font-style:italic;padding:4px 0;';
+      ro.textContent='No comments for this day.';
+    }
+    cb.appendChild(ro);
+  } else {
+    // Unpaid — fully editable
+    const ta=document.createElement('textarea'); ta.className='comment-textarea';
+    ta.placeholder='Add a note or comment for this day…';
+    ta.value=existingComment;
+    const saveRow=document.createElement('div'); saveRow.style.cssText='display:flex;align-items:center;margin-top:6px;';
+    const saveBtn=document.createElement('button'); saveBtn.className='comment-save-btn'; saveBtn.textContent='Save note';
+    const savedMsg=document.createElement('span'); savedMsg.className='comment-saved'; savedMsg.textContent='Saved ✓';
+    saveBtn.addEventListener('click',()=>{
+      saveComment(dateStr,ta.value);
+      savedMsg.classList.add('show');
+      setTimeout(()=>savedMsg.classList.remove('show'),2000);
+    });
+    saveRow.appendChild(saveBtn); saveRow.appendChild(savedMsg);
+    cb.appendChild(ta); cb.appendChild(saveRow);
+  }
+
   bodyEl.appendChild(cb);
 
   group.appendChild(bodyEl);
@@ -866,14 +882,30 @@ function buildDayCard(dateStr, showBackBtn){
   cb.style.margin='0 14px 14px';
   const existingComment=(data.comments&&data.comments[dateStr])||'';
   cb.innerHTML=`<div class="comment-box-label">💬 Notes / Comments</div>`;
-  const ta=document.createElement('textarea'); ta.className='comment-textarea';
-  ta.placeholder='Add a note or comment about this day…'; ta.value=existingComment;
-  const saveRow=document.createElement('div'); saveRow.style.cssText='display:flex;align-items:center;margin-top:6px;';
-  const saveBtn=document.createElement('button'); saveBtn.className='comment-save-btn'; saveBtn.textContent='Save note';
-  const savedMsg=document.createElement('span'); savedMsg.className='comment-saved'; savedMsg.textContent='Saved ✓';
-  saveBtn.addEventListener('click',()=>{ saveComment(dateStr,ta.value); savedMsg.classList.add('show'); setTimeout(()=>savedMsg.classList.remove('show'),2000); });
-  saveRow.appendChild(saveBtn); saveRow.appendChild(savedMsg);
-  cb.appendChild(ta); cb.appendChild(saveRow);
+
+  if(isPaidDay){
+    // Paid — read-only
+    const ro=document.createElement('div');
+    if(existingComment){
+      ro.style.cssText='font-size:12px;color:var(--text);background:var(--white);border:1px solid #FDE68A;border-radius:4px;padding:7px 9px;white-space:pre-wrap;line-height:1.5;';
+      ro.textContent=existingComment;
+    } else {
+      ro.style.cssText='font-size:12px;color:var(--hint);font-style:italic;padding:4px 0;';
+      ro.textContent='No comments for this day.';
+    }
+    cb.appendChild(ro);
+  } else {
+    // Unpaid — editable
+    const ta=document.createElement('textarea'); ta.className='comment-textarea';
+    ta.placeholder='Add a note or comment about this day…'; ta.value=existingComment;
+    const saveRow=document.createElement('div'); saveRow.style.cssText='display:flex;align-items:center;margin-top:6px;';
+    const saveBtn=document.createElement('button'); saveBtn.className='comment-save-btn'; saveBtn.textContent='Save note';
+    const savedMsg=document.createElement('span'); savedMsg.className='comment-saved'; savedMsg.textContent='Saved ✓';
+    saveBtn.addEventListener('click',()=>{ saveComment(dateStr,ta.value); savedMsg.classList.add('show'); setTimeout(()=>savedMsg.classList.remove('show'),2000); });
+    saveRow.appendChild(saveBtn); saveRow.appendChild(savedMsg);
+    cb.appendChild(ta); cb.appendChild(saveRow);
+  }
+
   card.appendChild(cb);
 
   return card;
@@ -924,25 +956,6 @@ function buildCalendar(){
     grid.appendChild(cell);
   }
   cal.appendChild(grid); wrap.appendChild(cal);
-
-  // Bi-monthly summary strip — hours only
-  const lastDay=new Date(tsYear,tsMonth+1,0).getDate();
-  const periods=[
-    {label:`1 – 15`,       start:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-01`, end:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-15`},
-    {label:`16 – ${lastDay}`, start:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-16`, end:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`},
-  ];
-  const strip=document.createElement('div'); strip.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px 14px;border-top:1px solid var(--border);';
-  periods.forEach(p=>{
-    const pEntries=data.entries.filter(e=>e.date>=p.start&&e.date<=p.end);
-    const pH=totalHours(pEntries);
-    const sc=document.createElement('div'); sc.style.cssText='background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;';
-    sc.innerHTML=`
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600;margin-bottom:4px">${MONTHS[tsMonth]} ${p.label}</div>
-      <div style="font-size:20px;font-weight:600;color:var(--teal)">${pH.toFixed(1)}<span style="font-size:12px;font-weight:400;color:var(--muted)">h</span></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">${pEntries.length} entr${pEntries.length!==1?'ies':'y'}</div>`;
-    strip.appendChild(sc);
-  });
-  wrap.appendChild(strip);
 
   const legend=document.createElement('div'); legend.className='cal-legend';
   legend.innerHTML=`<div class="cal-legend-item"><div class="cal-legend-dot l-empty"></div>No entry (click to view)</div><div class="cal-legend-item"><div class="cal-legend-dot l-logged"></div>Hours logged</div><div class="cal-legend-item"><div class="cal-legend-dot l-paid"></div>Invoice paid</div>`;
