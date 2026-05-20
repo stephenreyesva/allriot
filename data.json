@@ -55,6 +55,14 @@
       "timeOut": "17:15",
       "description": "Day 1, Hands on training ",
       "hours": "1.32"
+    },
+    {
+      "id": "mpdqct2olvo7",
+      "date": "2026-05-18",
+      "timeIn": "18:00",
+      "timeOut": "19:40",
+      "description": "Day 3, Hands on training",
+      "hours": "1.67"
     }
   ],
   "invoices": []
