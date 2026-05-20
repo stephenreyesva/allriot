@@ -783,32 +783,16 @@ function buildDashboard(){
         ctx.quadraticCurveTo(x+bW,y,x+bW,y+r); ctx.lineTo(x+bW,pT+cH);
         ctx.lineTo(x,pT+cH); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
         ctx.closePath(); ctx.fillStyle=chartColors[i]; ctx.fill();
-        // Show label ONLY on dates with time logs (v>0) in monthly view
-        // In yearly view show all month labels
-        const hasLog=v>0;
-        if(chartView==='yearly'){
-          ctx.fillStyle='rgba(0,0,0,0.38)'; ctx.font='9px system-ui,sans-serif'; ctx.textAlign='center';
-          ctx.fillText(chartLabels[i],x+bW/2,pT+cH+14);
-        } else if(hasLog){
-          // Bold label for days with logs
-          ctx.fillStyle=chartColors[i]==='#F59E0B'?'#92400E':'#0D9488';
-          ctx.font='bold 9px system-ui,sans-serif'; ctx.textAlign='center';
-          ctx.fillText(chartLabels[i],x+bW/2,pT+cH+14);
-        }
+        const showLbl=chartView==='yearly'||(n<=15)||(i===0)||((i+1)%5===0);
+        if(showLbl){ ctx.fillStyle='rgba(0,0,0,0.38)'; ctx.font='9px system-ui,sans-serif'; ctx.textAlign='center'; ctx.fillText(chartLabels[i],x+bW/2,pT+cH+14); }
       });
-        function showTip(mx){
+      function showTip(mx){
         var found=false;
         chartValues.forEach(function(v,i){
           const x=pL+i*(bW+gap);
           if(mx>=x&&mx<=x+bW){
-            const dateStr=chartView==='monthly'
-              ? dashYear+'-'+String(dashMonth+1).padStart(2,'0')+'-'+String(chartLabels[i]).padStart(2,'0')
-              : null;
-            const fullLbl=chartView==='monthly'
-              ? MONTHS[dashMonth]+' '+chartLabels[i]+', '+dashYear
-              : chartLabels[i]+' '+dashYear;
-            const phpStr=v>0&&fmtPhp(v*RATE)?' · ≈ '+fmtPhp(v*RATE):'';
-            tooltip.textContent=fullLbl+': '+v.toFixed(2)+'h'+(v>0?' · '+fmt(v*RATE)+phpStr:'');
+            const lbl=chartView==='monthly'?MONTHS[dashMonth].slice(0,3)+' '+chartLabels[i]:chartLabels[i];
+            tooltip.textContent=lbl+': '+v.toFixed(1)+'h'+(v>0?' · '+fmt(v*RATE):'');
             tooltip.style.left=(x+bW/2)/W*100+'%';
             tooltip.style.top=Math.max(4,pT+cH-(v>0?Math.max(3,(v/maxV)*cH):2)-36)+'px';
             tooltip.style.opacity='1'; found=true;
@@ -829,7 +813,7 @@ function buildDashboard(){
   const body=document.createElement('div'); body.style.padding='0 1.25rem';
   const byDate={};
   periodEntries.forEach(e=>{ if(!byDate[e.date])byDate[e.date]=[]; byDate[e.date].push(e); });
-  const sortedDates=Object.keys(byDate).sort();
+  const sortedDates=Object.keys(byDate).sort().reverse();
   if(!sortedDates.length){
     body.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><p>No entries for ${MONTHS[dashMonth]} ${dashYear} (${period.label}).<br><small style="color:var(--hint)">Go to Timesheet to log your hours.</small></p></div>`;
   } else {
@@ -1411,9 +1395,8 @@ function buildInvoiceDetail(inv){
     </div>`;
   doc.appendChild(docHdr);
 
-  // Bill to + period + date
+  // Bill to + period
   const meta=document.createElement('div'); meta.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem;background:var(--bg);border-radius:var(--radius-sm);margin-bottom:1.5rem;';
-  const invDateDisplay=inv.date ? new Date(inv.date+'T00:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : '—';
   meta.innerHTML=`
     <div>
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">Bill To</div>
@@ -1423,7 +1406,6 @@ function buildInvoiceDetail(inv){
     <div style="text-align:right">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">Period</div>
       <div style="font-weight:500">${inv.label||'—'}</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px">Invoice Date: <strong>${invDateDisplay}</strong></div>
       <div style="font-size:12px;color:var(--muted)">Status: <span class="badge badge-${inv.status||'draft'}" style="font-size:10px">${STATUS_LABELS[inv.status||'draft']}</span></div>
     </div>`;
   doc.appendChild(meta);
@@ -1465,26 +1447,7 @@ function buildInvoiceDetail(inv){
   });
   const grandRow=document.createElement('div'); grandRow.style.cssText='display:flex;justify-content:space-between;padding:10px 12px;background:var(--teal-bg);border-radius:var(--radius-sm);margin-top:8px;';
   grandRow.innerHTML=`<span style="font-weight:600;color:var(--teal-d)">Total Due</span><span style="font-weight:700;font-size:16px;color:var(--teal)">${fmt(grandTotal)}</span>`;
-  totInner.appendChild(grandRow);
-
-  // PHP conversion — admin only, no-print
-  if(inv.phpTotalAtInvoice || phpRate){
-    const phpAmt=inv.phpTotalAtInvoice ? parseFloat(inv.phpTotalAtInvoice) : (grandTotal*(phpRate||0));
-    const phpRateUsed=inv.phpRateAtInvoice ? parseFloat(inv.phpRateAtInvoice) : phpRate;
-    const phpDateNote=inv.date ? ' · as of '+new Date(inv.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-    const phpConvRow=document.createElement('div');
-    phpConvRow.className='no-print';
-    phpConvRow.style.cssText='margin-top:8px;padding:10px 12px;background:#F0FDF4;border:1px solid var(--teal-mid);border-radius:var(--radius-sm);';
-    phpConvRow.innerHTML=`
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--teal-d);font-weight:600;margin-bottom:4px;">💰 PHP Equivalent (Admin Only${phpDateNote})</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:12px;color:var(--muted)">@ ₱${phpRateUsed?phpRateUsed.toFixed(2):'—'}/USD (PayPal est.)</span>
-        <span style="font-size:16px;font-weight:700;color:var(--teal)">₱${phpAmt.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
-      </div>`;
-    totInner.appendChild(phpConvRow);
-  }
-
-  totBox.appendChild(totInner); doc.appendChild(totBox);
+  totInner.appendChild(grandRow); totBox.appendChild(totInner); doc.appendChild(totBox);
 
   // Payment info
   const payInfo=document.createElement('div'); payInfo.style.cssText='margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);';
@@ -1527,7 +1490,7 @@ function openInvoiceModal(existingId){
     }};
   } else {
     const n='INV-'+String(data.invoices.length+1).padStart(3,'0');
-    modal={type:'invoice', isEdit:false, data:{number:n,label:'',date:new Date().toISOString().slice(0,10),hours:'',subtotal:'',paypalFee:'',status:'draft',notes:'',phpRateAtInvoice:'',phpTotalAtInvoice:''}, onSave(){
+    modal={type:'invoice', isEdit:false, data:{number:n,label:'',hours:'',subtotal:'',paypalFee:'',status:'draft',notes:''}, onSave(){
       if(!this.data.number){ toast('Invoice number required.'); return; }
       if(!this.data.label){ toast('Please select a period.'); return; }
       const h=parseFloat(this.data.hours)||0;
@@ -1865,15 +1828,6 @@ function buildModal(){
     r1.appendChild(fg('Invoice number','text',md.number,'INV-001',v=>md.number=v));
     r1.appendChild(sg); m.appendChild(r1);
 
-    // Invoice date row — editable, defaults to today
-    const dr=document.createElement('div'); dr.className='form-row';
-    const dg=fg('Invoice Date','date',md.date||new Date().toISOString().slice(0,10),'',v=>{
-      md.date=v;
-      // Update PHP conversion if rate is available
-      updatePhpConvRow();
-    });
-    dr.appendChild(dg); m.appendChild(dr);
-
     // Period label dropdown
     const pg=document.createElement('div'); pg.className='form-group';
     pg.innerHTML=`<label class="form-label">Period <span style="color:var(--hint);font-weight:400">(bi-monthly)</span></label>`;
@@ -1900,7 +1854,6 @@ function buildModal(){
       const tf2=document.getElementById('inv-total'); if(tf2) tf2.textContent=fmt((parseFloat(md.subtotal)||0)+(parseFloat(md.paypalFee)||0));
       // Show breakdown preview
       updateBreakdownPreview(entries, md);
-      updatePhpConvRow();
     });
     pg.appendChild(pSel); m.appendChild(pg);
 
@@ -1932,51 +1885,11 @@ function buildModal(){
       md.paypalFee=e.target.value;
       const tf2=document.getElementById('inv-total');
       if(tf2) tf2.textContent=fmt((parseFloat(md.subtotal)||0)+(parseFloat(md.paypalFee)||0));
-      updatePhpConvRow();
     });
     fg2.appendChild(fInp);
     const tg2=document.createElement('div'); tg2.className='form-group';
     tg2.innerHTML=`<label class="form-label">Total Due</label><div id="inv-total" style="font-size:18px;font-weight:600;color:var(--teal);padding:8px 0;">${fmt((parseFloat(md.subtotal||0))+(parseFloat(md.paypalFee||0)))}</div>`;
     r3.appendChild(fg2); r3.appendChild(tg2); m.appendChild(r3);
-
-    // PayPal PHP conversion row — admin only, never prints
-    const phpRow=document.createElement('div'); phpRow.id='inv-php-row';
-    phpRow.style.cssText='background:var(--teal-bg);border:1px solid var(--teal-mid);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:0.75rem;';
-    m.appendChild(phpRow);
-
-    function updatePhpConvRow(){
-      phpRow.innerHTML='';
-      const grandTotal=(parseFloat(md.subtotal||0))+(parseFloat(md.paypalFee||0));
-      if(phpRate && grandTotal>0){
-        const phpAmt=grandTotal*phpRate;
-        const rateUsed=md.phpRateAtInvoice||phpRate;
-        md.phpRateAtInvoice=phpRate;
-        md.phpTotalAtInvoice=phpAmt.toFixed(2);
-        phpRow.innerHTML=`
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--teal-d);font-weight:600;margin-bottom:5px;">💰 PayPal PHP Conversion (Admin Only)</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-            <div>
-              <div style="font-size:10px;color:var(--muted);margin-bottom:2px">USD Amount</div>
-              <div style="font-size:14px;font-weight:600;color:var(--teal-d)">${fmt(grandTotal)}</div>
-            </div>
-            <div>
-              <div style="font-size:10px;color:var(--muted);margin-bottom:2px">Rate (PayPal est.)</div>
-              <div style="font-size:14px;font-weight:600;color:var(--teal-d)">₱${phpRate.toFixed(2)}/USD</div>
-            </div>
-            <div>
-              <div style="font-size:10px;color:var(--muted);margin-bottom:2px">PHP Equivalent</div>
-              <div style="font-size:14px;font-weight:700;color:var(--teal)">₱${phpAmt.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-            </div>
-          </div>
-          <div style="font-size:10px;color:var(--muted);margin-top:5px;">Rate as of ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · Invoice date: ${md.date||'—'}</div>`;
-      } else if(!phpRate){
-        phpRow.innerHTML=`<div style="font-size:12px;color:var(--muted);">PHP rate not yet loaded — will appear once the exchange rate is fetched.</div>`;
-      } else {
-        phpRow.innerHTML='';
-        phpRow.style.display='none';
-      }
-    }
-    updatePhpConvRow();
 
     m.appendChild(fg('Notes','text',md.notes||'','e.g. Payment due in 7 days',v=>md.notes=v));
 
