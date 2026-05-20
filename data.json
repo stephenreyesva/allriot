@@ -91,7 +91,10 @@
       "paypalFee": 2.42,
       "status": "paid",
       "notes": "78F76228N1532732K",
-      "total": 45.220000000000006
+      "total": 45.220000000000006,
+      "phpRateAtInvoice": 59.080799999999996,
+      "phpTotalAtInvoice": "2671.63",
+      "date": "2026-05-19"
     }
   ]
 }
