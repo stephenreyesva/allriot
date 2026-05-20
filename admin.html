@@ -972,31 +972,58 @@ function buildDetailedLog(mEntries,monthH,paidDates){
     if(e.date!==lastDate&&lastDate!=='') tr.style.borderTop='2px solid var(--border)';
     lastDate=e.date;
 
-    // Date cell
-    const dateTd=document.createElement('td');
+    const eAmt=(parseFloat(e.hours)||0)*RATE;
+    const ePhp=fmtPhp(eAmt);
+
+    // ── Date cell — built with createElement so click event survives ──
+    const dateTd=document.createElement('td'); dateTd.style.whiteSpace='nowrap';
     const dateBtn=document.createElement('button');
     dateBtn.style.cssText=`background:none;border:none;cursor:pointer;font-weight:600;font-family:inherit;font-size:13px;padding:0;white-space:nowrap;text-decoration:underline;text-underline-offset:3px;color:${isPaidEntry?'#92400E':'var(--teal)'};`;
     dateBtn.textContent=fmtDate(e.date);
+    // Click date → open day modal (shows ALL entries for that day, same as dashboard)
     dateBtn.addEventListener('click',ev=>{ ev.stopPropagation(); openDayModal(e.date); });
+    dateTd.appendChild(dateBtn);
     if(isPaidEntry){
-      const paidTag=document.createElement('span'); paidTag.style.cssText='font-size:9px;background:#FCD34D;color:#92400E;padding:1px 5px;border-radius:100px;margin-left:5px;font-weight:600;'; paidTag.textContent='PAID';
-      dateTd.appendChild(dateBtn); dateTd.appendChild(paidTag);
-    } else { dateTd.appendChild(dateBtn); }
+      const paidTag=document.createElement('span');
+      paidTag.style.cssText='font-size:9px;background:#FCD34D;color:#92400E;padding:1px 5px;border-radius:100px;margin-left:5px;font-weight:600;';
+      paidTag.textContent='PAID'; dateTd.appendChild(paidTag);
+    }
     tr.appendChild(dateTd);
 
-    const eAmt=(parseFloat(e.hours)||0)*RATE;
-    const ePhp=fmtPhp(eAmt);
-    tr.innerHTML+=`<td style="color:var(--muted);font-size:12px">${fmtTime(e.timeIn)}</td><td style="color:var(--muted);font-size:12px">${fmtTime(e.timeOut)}</td><td>${e.description||'<span style="color:var(--hint)">—</span>'}</td><td style="text-align:right">${parseFloat(e.hours||0).toFixed(2)}h</td><td style="text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}">${fmt(eAmt)}${ePhp?'<br><span style="font-size:10px;color:var(--muted);font-weight:400">≈ '+ePhp+'</span>':''}</td>`;
+    // ── Time In cell ──
+    const tiTd=document.createElement('td'); tiTd.style.cssText='color:var(--muted);font-size:12px;';
+    tiTd.textContent=fmtTime(e.timeIn); tr.appendChild(tiTd);
 
-    // Actions: date click = day modal, row click = edit entry, delete btn = delete
-    // No Edit button — clicking the row (or date) is enough
+    // ── Time Out cell ──
+    const toTd=document.createElement('td'); toTd.style.cssText='color:var(--muted);font-size:12px;';
+    toTd.textContent=fmtTime(e.timeOut); tr.appendChild(toTd);
+
+    // ── Description cell ──
+    const descTd=document.createElement('td');
+    descTd.innerHTML=e.description||'<span style="color:var(--hint)">—</span>';
+    tr.appendChild(descTd);
+
+    // ── Hours cell ──
+    const hrsTd=document.createElement('td'); hrsTd.style.textAlign='right';
+    hrsTd.textContent=parseFloat(e.hours||0).toFixed(2)+'h'; tr.appendChild(hrsTd);
+
+    // ── Amount cell (with PHP if available) ──
+    const amtTd=document.createElement('td'); amtTd.style.cssText=`text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'};`;
+    amtTd.innerHTML=fmt(eAmt)+(ePhp?'<br><span style="font-size:10px;color:var(--muted);font-weight:400">≈ '+ePhp+'</span>':'');
+    tr.appendChild(amtTd);
+
+    // ── Actions cell — Edit button removed, row click = edit ──
     const td=document.createElement('td'); td.style.cssText='text-align:right;white-space:nowrap;';
-    const db=document.createElement('button'); db.className='delbtn'; db.innerHTML='&times;'; db.title='Delete entry'; 
-    db.addEventListener('click',ev=>{ ev.stopPropagation(); if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); render(); } });
-    td.appendChild(db);
-    // Clicking anywhere on row (except date btn and delete btn) opens edit modal
-    tr.style.cursor='pointer'; tr.title='Click to edit';
-    tr.addEventListener('click',ev=>{ if(ev.target.tagName==='BUTTON'||ev.target.closest('button')) return; openEditEntryModal(e.id); });
+    if(!isPaidEntry){
+      const db=document.createElement('button'); db.className='delbtn'; db.innerHTML='&times;'; db.title='Delete entry'; db.style.marginLeft='4px';
+      db.addEventListener('click',ev=>{ ev.stopPropagation(); if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); render(); } });
+      td.appendChild(db);
+      // Click row (not date btn, not delete btn) → edit this entry
+      tr.title='Click to edit';
+      tr.addEventListener('click',ev=>{ if(ev.target.tagName==='BUTTON'||ev.target.closest('button')) return; openEditEntryModal(e.id); });
+    } else {
+      tr.style.cursor='default'; tr.title='';
+    }
     tr.appendChild(td); tbody.appendChild(tr);
   });
 
@@ -1097,18 +1124,24 @@ function buildInvoices(){
       numBtn.addEventListener('click',()=>{ invoiceDetailId=inv.id; render(); });
       numTd.appendChild(numBtn);
 
-      // Status: always a dropdown — no lock for any status
+      const isPaidInv = inv.status==='paid';
+
+      // Status: paid = static badge only; others = dropdown
       const sc=document.createElement('td');
-      const sel=document.createElement('select'); sel.className='status-sel '+(inv.status||'draft');
-      STATUSES.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=STATUS_LABELS[s]; if(s===inv.status)o.selected=true; sel.appendChild(o); });
-      sel.addEventListener('change',e=>{
-        const newStatus=e.target.value;
-        inv.status=newStatus; sel.className='status-sel '+newStatus; save();
-        toast('Status → '+STATUS_LABELS[newStatus]);
-        if(newStatus==='sent') handleSentStatus(inv);
-        render();
-      });
-      sc.appendChild(sel);
+      if(isPaidInv){
+        sc.innerHTML=`<span class="badge badge-paid">Paid</span>`;
+      } else {
+        const sel=document.createElement('select'); sel.className='status-sel '+(inv.status||'draft');
+        STATUSES.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=STATUS_LABELS[s]; if(s===inv.status)o.selected=true; sel.appendChild(o); });
+        sel.addEventListener('change',e=>{
+          const newStatus=e.target.value;
+          inv.status=newStatus; sel.className='status-sel '+newStatus; save();
+          toast('Status → '+STATUS_LABELS[newStatus]);
+          if(newStatus==='sent') handleSentStatus(inv);
+          render();
+        });
+        sc.appendChild(sel);
+      }
 
       // Notes: always editable (even for paid)
       const nc=document.createElement('td');
