@@ -303,43 +303,91 @@ async function tryLogin(u,p){
   if(h===AUTH_HASH){ loggedIn=true; sessionStorage.setItem('sr_auth','1'); render(); }
   else{ document.getElementById('login-err').classList.add('show'); }
 }
-function logout(){ loggedIn=false; sessionStorage.removeItem('sr_auth'); render(); }
+function logout(){ loggedIn=false; _autoLoaded=false; sessionStorage.removeItem('sr_auth'); render(); }
 
 // ── Data ─────────────────────────────────────────────────────
 function save(){ localStorage.setItem('sr_tracker_v1',JSON.stringify(data)); }
-function loadLocal(){ const r=localStorage.getItem('sr_tracker_v1'); if(r){ try{ data=JSON.parse(r); }catch(e){} } }
+function loadLocal(){
+  const r=localStorage.getItem('sr_tracker_v1');
+  if(r){ try{ data=JSON.parse(r); }catch(e){} }
+}
 
-// ── GitHub sync ───────────────────────────────────────────────
+// ── GitHub helpers ────────────────────────────────────────────
+const GH_API = `https://api.github.com/repos/${GH.user}/${GH.repo}/contents/data.json`;
+const GH_RAW = `https://raw.githubusercontent.com/${GH.user}/${GH.repo}/${GH.branch}/data.json`;
+
+function ghHeaders(){
+  return { 'Authorization':'token '+_rt(), 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json' };
+}
+
+// ── LOAD from GitHub → overwrites local data ──────────────────
+async function loadFromGitHub(silent){
+  try{
+    const res=await fetch(GH_RAW+'?t='+Date.now());
+    if(!res.ok){ if(!silent) toast('⚠️ Could not reach GitHub ('+res.status+')'); return false; }
+    const json=await res.json();
+    data=json;
+    if(!data.entries)  data.entries=[];
+    if(!data.invoices) data.invoices=[];
+    save(); // mirror to localStorage so offline edits build on top
+    localStorage.setItem('sr_last_load', Date.now().toString());
+    if(!silent) toast('✓ Loaded latest data from GitHub');
+    return true;
+  } catch(e){
+    if(!silent) toast('Load failed — check your connection.');
+    return false;
+  }
+}
+
+// ── PUBLISH to GitHub → client (index.html) sees new records ──
+async function publishToGitHub(){
+  const content=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
+  try{
+    let sha='';
+    const ex=await fetch(GH_API,{headers:ghHeaders()});
+    if(ex.ok){ const j=await ex.json(); sha=j.sha; }
+    const body={message:'update tracker data',content,branch:GH.branch};
+    if(sha) body.sha=sha;
+    const res=await fetch(GH_API,{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)});
+    if(res.ok){
+      localStorage.setItem('sr_last_sync', Date.now().toString());
+      toast('✓ Published! Client view (index.html) will refresh shortly.');
+      return true;
+    } else {
+      const e=await res.json();
+      toast('Publish error: '+(e.message||'unknown error'));
+      return false;
+    }
+  } catch(e){ toast('Publish failed — check your connection.'); return false; }
+}
+
+// ── Export JSON (offline backup) ──────────────────────────────
 function exportData(){
   const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='data.json'; a.click();
   toast('data.json downloaded!');
 }
-async function syncGitHub(){
-  const tok=_rt();
-  const content=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
-  const api=`https://api.github.com/repos/${GH.user}/${GH.repo}/contents/data.json`;
-  try{
-    let sha='';
-    const ex=await fetch(api,{headers:{'Authorization':'token '+tok,'Accept':'application/vnd.github.v3+json'}});
-    if(ex.ok){ const j=await ex.json(); sha=j.sha; }
-    const body={message:'update tracker data',content,branch:GH.branch};
-    if(sha) body.sha=sha;
-    const res=await fetch(api,{method:'PUT',headers:{'Authorization':'token '+tok,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(res.ok){
-      localStorage.setItem('sr_last_sync', Date.now().toString());
-      toast('✓ Synced — client view is now live!');
-    }
-    else{ const e=await res.json(); toast('Error: '+(e.message||'sync failed')); }
-  }catch(e){ toast('Sync failed — check your connection.'); }
-}
 
 // ── Render ────────────────────────────────────────────────────
+let _autoLoaded = false; // load from GitHub once per session on first login
+
 function render(){
-  loadLocal(); // always re-read so dashboard reflects latest timesheet entries
+  loadLocal(); // always re-read localStorage so dashboard reflects latest edits
   const root=document.getElementById('root');
   root.innerHTML='';
   if(!loggedIn){ root.appendChild(buildLogin()); return; }
+
+  // First time we render after login → auto-pull from GitHub in background
+  if(!_autoLoaded){
+    _autoLoaded=true;
+    // Show app immediately with local data, then reload once GitHub responds
+    root.appendChild(buildApp());
+    loadFromGitHub(false).then(ok=>{
+      if(ok) render(); // re-render with fresh data
+    });
+    return;
+  }
+
   root.appendChild(buildApp());
 }
 
@@ -384,36 +432,65 @@ function buildApp(){
   vb.addEventListener('click',()=>{ window.location.href='index.html'; });
   ab.appendChild(vb); main.appendChild(ab);
 
-  // GitHub sync bar — token embedded, just click Sync
+  // GitHub sync bar — Load + Publish buttons
   const sb=document.createElement('div'); sb.className='sync-bar no-print';
   sb.style.cssText='background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
 
-  const lbl=document.createElement('span'); lbl.className='sync-label';
-  lbl.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;color:var(--teal)"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
-  <span style="font-size:12px;color:var(--muted)">GitHub Sync</span>
-  <span style="font-size:11px;color:var(--teal);font-weight:500;margin-left:2px;">● Ready</span>`;
+  // Left: GitHub label + status
+  const lbl=document.createElement('div');
+  lbl.style.cssText='display:flex;align-items:center;gap:6px;flex-shrink:0;';
+  const lastLoad  = localStorage.getItem('sr_last_load');
+  const lastSync  = localStorage.getItem('sr_last_sync');
+  const loadTime  = lastLoad  ? new Date(parseInt(lastLoad)).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})  : null;
+  const syncTime  = lastSync  ? new Date(parseInt(lastSync)).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})  : null;
+  lbl.innerHTML=`
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--teal);flex-shrink:0"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
+    <span style="font-size:12px;color:var(--muted);font-weight:500;">GitHub</span>
+    <span style="font-size:11px;color:var(--hint);">${loadTime?'loaded '+loadTime:'—'}</span>`;
+  sb.appendChild(lbl);
 
-  const syncBtn=document.createElement('button'); syncBtn.className='btn btn-primary btn-sm';
-  syncBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg> Sync now`;
-  syncBtn.addEventListener('click',async()=>{
-    syncBtn.disabled=true;
-    syncBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg> Syncing…`;
-    await syncGitHub();
-    syncBtn.disabled=false;
-    syncBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg> Sync now`;
+  // Spacer
+  const sp=document.createElement('div'); sp.style.flex='1'; sb.appendChild(sp);
+
+  // ↓ Load button
+  const loadBtn=document.createElement('button'); loadBtn.className='btn btn-outline btn-sm';
+  loadBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5"/></svg> Load from GitHub`;
+  loadBtn.title='Pull latest data from GitHub. Use this when opening on a new device.';
+  loadBtn.addEventListener('click',async()=>{
+    loadBtn.disabled=true; loadBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5"/></svg> Loading…`;
+    const ok=await loadFromGitHub(false);
+    loadBtn.disabled=false;
+    loadBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5"/></svg> Load from GitHub`;
+    if(ok) render();
   });
+  sb.appendChild(loadBtn);
 
+  // ↑ Publish button
+  const pubBtn=document.createElement('button'); pubBtn.className='btn btn-primary btn-sm';
+  pubBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 20 23 14 17 14"/><polyline points="1 4 1 10 7 10"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg> Publish to Client`;
+  pubBtn.title='Push your data to GitHub so Margarita\'s index.html shows the latest records.';
+  pubBtn.addEventListener('click',async()=>{
+    pubBtn.disabled=true; pubBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5"/></svg> Publishing…`;
+    await publishToGitHub();
+    pubBtn.disabled=false;
+    pubBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 20 23 14 17 14"/><polyline points="1 4 1 10 7 10"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg> Publish to Client`;
+    render(); // refresh last-synced timestamp
+  });
+  sb.appendChild(pubBtn);
+
+  // Export backup
   const expBtn=document.createElement('button'); expBtn.className='btn btn-outline btn-sm';
-  expBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export JSON`;
+  expBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+  expBtn.title='Download data.json as a local backup';
   expBtn.addEventListener('click',exportData);
+  sb.appendChild(expBtn);
 
-  // Last synced timestamp
-  const lastSync=localStorage.getItem('sr_last_sync');
-  const tsLabel=document.createElement('span');
-  tsLabel.style.cssText='font-size:11px;color:var(--hint);margin-left:auto;';
-  tsLabel.textContent=lastSync?'Last synced: '+new Date(parseInt(lastSync)).toLocaleString():'Not synced yet';
-
-  sb.appendChild(lbl); sb.appendChild(syncBtn); sb.appendChild(expBtn); sb.appendChild(tsLabel);
+  // Last published note
+  if(syncTime){
+    const ts=document.createElement('span'); ts.style.cssText='font-size:10px;color:var(--hint);white-space:nowrap;';
+    ts.textContent='Last published: '+syncTime;
+    sb.appendChild(ts);
+  }
   main.appendChild(sb);
 
   const pages={dashboard:buildDashboard,timesheet:buildTimesheet,invoices:buildInvoices};
@@ -1453,8 +1530,14 @@ function buildModal(){
 
 // ── Init ──────────────────────────────────────────────────────
 loadLocal();
-if(sessionStorage.getItem('sr_auth')==='1') loggedIn=true;
-render();
+if(sessionStorage.getItem('sr_auth')==='1'){
+  loggedIn=true;
+  // Returning session — auto-load in background silently, then re-render
+  render();
+  loadFromGitHub(true).then(ok=>{ if(ok) render(); });
+} else {
+  render();
+}
 </script>
 </body>
 </html>
