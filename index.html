@@ -405,6 +405,7 @@ async function loadData(){
     if(!data.comments) data.comments = {};
     if(!data.entries)  data.entries  = [];
     if(!data.invoices) data.invoices = [];
+    mergeLocalComments(); // restore Margarita's locally saved notes
     dataLoaded = true;
     loadError  = false;
   } catch(e){
@@ -414,8 +415,24 @@ async function loadData(){
 }
 
 function saveComment(dateStr, text){
-  // Client view is read-only — comments not supported
-  toast('Note: comments are not saved on the client view.');
+  if(!data.comments) data.comments={};
+  data.comments[dateStr]=text;
+  // Save comments separately in localStorage so they persist across refreshes
+  try{
+    const stored=JSON.parse(localStorage.getItem('sr_comments_v1')||'{}');
+    stored[dateStr]=text;
+    localStorage.setItem('sr_comments_v1', JSON.stringify(stored));
+  }catch(e){}
+}
+
+// Merge locally-saved comments into fetched data
+function mergeLocalComments(){
+  try{
+    const stored=JSON.parse(localStorage.getItem('sr_comments_v1')||'{}');
+    if(!data.comments) data.comments={};
+    // Local comments take priority (Margarita's own notes)
+    Object.assign(data.comments, stored);
+  }catch(e){}
 }
 
 // Auto-refresh every 5 minutes
@@ -668,13 +685,6 @@ function buildTimesheet(){
   else                          screenWrap.appendChild(buildDailyView());
   div.appendChild(screenWrap);
 
-  // ── Detailed Log — hours only, latest first, view-only ────────
-  const mEntriesLog=getMonthEntries(tsMonth,tsYear);
-  if(mEntriesLog.length){
-    const paidDatesLog=getPaidDates();
-    div.appendChild(buildDetailedLogClient(mEntriesLog,paidDatesLog));
-  }
-
   div.appendChild(buildPrintTable());
   return div;
 }
@@ -914,12 +924,15 @@ function buildDayCard(dateStr, showBackBtn){
 // ── Calendar view ──────────────────────────────────────────────
 function buildCalendar(){
   const paidDates=getPaidDates();
-  const wrap=document.createElement('div'); wrap.className='card';
+  const wrap=document.createElement('div');
+
+  // ── Calendar card ─────────────────────────────────────────────
+  const calCard=document.createElement('div'); calCard.className='card'; calCard.style.marginBottom='1.25rem';
   const hdr=document.createElement('div'); hdr.className='card-header';
   const mEntries=getMonthEntries(tsMonth,tsYear);
   const mH=totalHours(mEntries);
   hdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear}</div><div style="font-size:12px;color:var(--muted)">${mH.toFixed(1)}h total</div>`;
-  wrap.appendChild(hdr);
+  calCard.appendChild(hdr);
 
   const cal=document.createElement('div'); cal.className='cal-wrap';
   const grid=document.createElement('div'); grid.className='cal-grid';
@@ -931,8 +944,10 @@ function buildCalendar(){
   const daysInMonth=new Date(tsYear,tsMonth+1,0).getDate();
   const today=new Date().toISOString().slice(0,10);
 
+  // Blank leading cells
   for(let i=0;i<firstDay;i++){ const ec=document.createElement('div'); ec.className='cal-day empty'; grid.appendChild(ec); }
 
+  // ALL days clickable
   for(let d=1;d<=daysInMonth;d++){
     const dateStr=`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dayEntries=entryMap[dateStr]||[];
@@ -945,7 +960,7 @@ function buildCalendar(){
     if(isPaid) cls+=' paid-entry'; else if(hasEntry) cls+=' has-entry';
     if(dateStr===today) cls+=' today';
     cell.className=cls;
-    cell.style.cursor='pointer'; // ALL days clickable
+    cell.style.cursor='pointer';
     cell.title=hasEntry
       ?`${hours.toFixed(1)}h logged${isPaid?' · Invoice paid':''} — click for details`
       :'Click to view this day';
@@ -955,11 +970,95 @@ function buildCalendar(){
     cell.addEventListener('click',()=>{ tsView='daily'; selectedCalDay=dateStr; render(); });
     grid.appendChild(cell);
   }
-  cal.appendChild(grid); wrap.appendChild(cal);
+  cal.appendChild(grid); calCard.appendChild(cal);
+
+  // Bi-monthly summary strip — hours only
+  const lastDay=new Date(tsYear,tsMonth+1,0).getDate();
+  const periods=[
+    {label:`1 – 15`,         start:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-01`, end:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-15`},
+    {label:`16 – ${lastDay}`,start:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-16`, end:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`},
+  ];
+  const strip=document.createElement('div');
+  strip.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px 14px;border-top:1px solid var(--border);';
+  periods.forEach(p=>{
+    const pEntries=data.entries.filter(e=>e.date>=p.start&&e.date<=p.end);
+    const pH=totalHours(pEntries);
+    const sc=document.createElement('div'); sc.style.cssText='background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;';
+    sc.innerHTML=`
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600;margin-bottom:4px">${MONTHS[tsMonth]} ${p.label}</div>
+      <div style="font-size:20px;font-weight:600;color:var(--teal)">${pH.toFixed(1)}<span style="font-size:12px;font-weight:400;color:var(--muted)">h</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${pEntries.length} entr${pEntries.length!==1?'ies':'y'}</div>`;
+    strip.appendChild(sc);
+  });
+  calCard.appendChild(strip);
 
   const legend=document.createElement('div'); legend.className='cal-legend';
   legend.innerHTML=`<div class="cal-legend-item"><div class="cal-legend-dot l-empty"></div>No entry (click to view)</div><div class="cal-legend-item"><div class="cal-legend-dot l-logged"></div>Hours logged</div><div class="cal-legend-item"><div class="cal-legend-dot l-paid"></div>Invoice paid</div>`;
-  wrap.appendChild(legend);
+  calCard.appendChild(legend);
+  wrap.appendChild(calCard);
+
+  // ── Detailed Log below calendar — clickable dates ─────────────
+  if(mEntries.length){
+    const logCard=document.createElement('div'); logCard.className='card';
+    const logHdr=document.createElement('div'); logHdr.className='card-header';
+    logHdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear} — Detailed Log</div><div style="font-size:11px;color:var(--hint)">Click a date to see full detail</div>`;
+    logCard.appendChild(logHdr);
+
+    const tableWrap=document.createElement('div'); tableWrap.className='table-wrap';
+    const tbl=document.createElement('table');
+    tbl.innerHTML=`<thead><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Description</th><th style="text-align:right">Hours</th></tr></thead>`;
+    const tbody=document.createElement('tbody');
+
+    const sorted=[...mEntries].sort((a,b)=>b.date.localeCompare(a.date));
+    const monthH=mH;
+    let lastDate='';
+
+    sorted.forEach(e=>{
+      const isPaidEntry=paidDates.has(e.date);
+      const tr=document.createElement('tr');
+      tr.style.cursor='pointer';
+      tr.title='Click to view full detail for this day';
+      if(e.date!==lastDate&&lastDate!=='') tr.style.borderTop='2px solid var(--border)';
+      lastDate=e.date;
+
+      // Clickable date cell
+      const dateTd=document.createElement('td');
+      const dateBtn=document.createElement('button');
+      dateBtn.style.cssText=`background:none;border:none;cursor:pointer;font-weight:600;font-family:inherit;font-size:13px;padding:0;white-space:nowrap;text-decoration:underline;text-underline-offset:3px;color:${isPaidEntry?'#92400E':'var(--teal)'};`;
+      dateBtn.textContent=fmtDate(e.date);
+      dateBtn.title='Click to view full detail for this day';
+      dateBtn.addEventListener('click',ev=>{
+        ev.stopPropagation();
+        tsView='daily'; selectedCalDay=e.date; render();
+      });
+      dateTd.appendChild(dateBtn);
+      if(isPaidEntry){
+        const tag=document.createElement('span');
+        tag.style.cssText='font-size:9px;background:#FCD34D;color:#92400E;padding:1px 5px;border-radius:100px;margin-left:5px;font-weight:600;';
+        tag.textContent='PAID';
+        dateTd.appendChild(tag);
+      }
+      tr.appendChild(dateTd);
+      tr.innerHTML+=`
+        <td style="color:var(--muted);font-size:12px">${fmtTime(e.timeIn)}</td>
+        <td style="color:var(--muted);font-size:12px">${fmtTime(e.timeOut)}</td>
+        <td>${e.description||'<span style="color:var(--hint)">—</span>'}</td>
+        <td style="text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}">${parseFloat(e.hours||0).toFixed(1)}h</td>`;
+      // Whole row clickable too
+      tr.addEventListener('click',ev=>{
+        if(ev.target.tagName==='BUTTON'||ev.target.closest('button')) return;
+        tsView='daily'; selectedCalDay=e.date; render();
+      });
+      tbody.appendChild(tr);
+    });
+
+    const tf=document.createElement('tfoot');
+    tf.innerHTML=`<tr><td colspan="4" style="font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.06em">Month Total</td><td style="text-align:right;font-weight:600">${monthH.toFixed(1)}h</td></tr>`;
+    tbl.appendChild(tbody); tbl.appendChild(tf);
+    tableWrap.appendChild(tbl); logCard.appendChild(tableWrap);
+    wrap.appendChild(logCard);
+  }
+
   return wrap;
 }
 
