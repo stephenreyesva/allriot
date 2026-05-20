@@ -391,17 +391,23 @@ function printTimesheet(dateStr){
   printWithName(label+'-'+cs);
 }
 
-// ── Data — fetched live from GitHub (read-only client view) ────
-const GH_RAW = 'https://raw.githubusercontent.com/stephenreyesva/timetracker/main/data.json';
+// ── Data — fetched live from GitHub Contents API (no CDN cache) ─
+const GH_API = 'https://api.github.com/repos/stephenreyesva/timetracker/contents/data.json';
 let dataLoaded = false;
 let loadError  = false;
 
 async function loadData(){
   try{
-    const res = await fetch(GH_RAW + '?t=' + Date.now()); // cache-bust
+    // GitHub Contents API bypasses the CDN cache — data appears immediately after admin publishes
+    const res = await fetch(GH_API, {
+      headers: { 'Accept': 'application/vnd.github.v3+json' },
+      cache: 'no-store'
+    });
     if(!res.ok) throw new Error('HTTP '+res.status);
     const json = await res.json();
-    data = json;
+    // File content is base64-encoded in the API response
+    const decoded = decodeURIComponent(escape(atob(json.content.replace(/\n/g,''))));
+    data = JSON.parse(decoded);
     if(!data.comments) data.comments = {};
     if(!data.entries)  data.entries  = [];
     if(!data.invoices) data.invoices = [];
@@ -922,26 +928,6 @@ function buildCalendar(){
     grid.appendChild(cell);
   }
   cal.appendChild(grid); calCard.appendChild(cal);
-
-  // Bi-monthly summary strip — hours only
-  const lastDay=new Date(tsYear,tsMonth+1,0).getDate();
-  const periods=[
-    {label:`1 – 15`,         start:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-01`, end:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-15`},
-    {label:`16 – ${lastDay}`,start:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-16`, end:`${tsYear}-${String(tsMonth+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`},
-  ];
-  const strip=document.createElement('div');
-  strip.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px 14px;border-top:1px solid var(--border);';
-  periods.forEach(p=>{
-    const pEntries=data.entries.filter(e=>e.date>=p.start&&e.date<=p.end);
-    const pH=totalHours(pEntries);
-    const sc=document.createElement('div'); sc.style.cssText='background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;';
-    sc.innerHTML=`
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600;margin-bottom:4px">${MONTHS[tsMonth]} ${p.label}</div>
-      <div style="font-size:20px;font-weight:600;color:var(--teal)">${pH.toFixed(1)}<span style="font-size:12px;font-weight:400;color:var(--muted)">h</span></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">${pEntries.length} entr${pEntries.length!==1?'ies':'y'}</div>`;
-    strip.appendChild(sc);
-  });
-  calCard.appendChild(strip);
 
   const legend=document.createElement('div'); legend.className='cal-legend';
   legend.innerHTML=`<div class="cal-legend-item"><div class="cal-legend-dot l-empty"></div>No entry (click to view)</div><div class="cal-legend-item"><div class="cal-legend-dot l-logged"></div>Hours logged</div><div class="cal-legend-item"><div class="cal-legend-dot l-paid"></div>Invoice paid</div>`;
