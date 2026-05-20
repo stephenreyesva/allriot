@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="img/ico.ico">
+  <link rel="icon" type="image/png" href="img/ico.ico">
 <title>Stephen Reyes - All Riot Ltd.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
@@ -322,7 +322,7 @@ tfoot td{padding:10px 14px;font-size:12px;background:var(--bg);}
 <script>
 // ── Config ─────────────────────────────────────────────────────
 const PROFILE = { name:'Stephen Reyes', email:'stephen.reyes.va@gmail.com', role:'E-Commerce Virtual Assistant', rate:5 };
-const CLIENT  = { name:'Margarite', company:'All Riot Ltd.', email:'info@allriot.com' };
+const CLIENT  = { name:'Margarita Goroshkevich', company:'All Riot Ltd.', email:'info@allriot.com', website:'allriot.com' };
 const PAYMENT = { paypal:'stephen.reyes.va@gmail.com' };
 const RATE    = 5;
 const STATUSES = ['draft','sent','pending','paid','overdue'];
@@ -1284,6 +1284,8 @@ function buildInvoicePanel(inv){
       <div class="inv-party-label">Billed To</div>
       <div class="inv-party-name">${CLIENT.name}</div>
       <div class="inv-party-detail">${CLIENT.company}</div>
+      <div class="inv-party-detail">${CLIENT.email}</div>
+      <div class="inv-party-detail"><a href="https://${CLIENT.website}" target="_blank" style="color:var(--teal);text-decoration:none;">${CLIENT.website}</a></div>
     </div>`;
   body.appendChild(fromTo);
 
