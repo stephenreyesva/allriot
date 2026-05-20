@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="img/ico.ico">
+  <link rel="icon" type="image/png" href="img/ico.ico">
 <title>Admin — Stephen Reyes Time Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
@@ -1519,12 +1519,11 @@ function buildTimePicker(label, value, placeholder, onChange){
     const ampm=hh<12?'AM':'PM';
     let h12=hh%12; if(h12===0)h12=12;
     const mStr=String(mm).padStart(2,'0');
-    const mRound=MINUTES.includes(mStr)?mStr:MINUTES.reduce((a,b)=>Math.abs(Number(b)-mm)<Math.abs(Number(a)-mm)?b:a);
-    return {h:h12, m:mRound, ampm};
+    return {h:h12, m:mStr, ampm};
   }
   function to24(h12,m,ampm){
     let hh=h12%12; if(ampm==='PM')hh+=12;
-    return String(hh).padStart(2,'0')+':'+m;
+    return String(hh).padStart(2,'0')+':'+String(m).padStart(2,'0');
   }
   function display(v){
     if(!v) return placeholder||'Select time';
@@ -1562,13 +1561,48 @@ function buildTimePicker(label, value, placeholder, onChange){
       hCol.appendChild(it);
     });
 
-    // Minute column
+    // Minute column — with free-text input at top + quick-select buttons
     const mCol=document.createElement('div'); mCol.className='tp-col';
     const mHdr=document.createElement('div'); mHdr.className='tp-col-hdr'; mHdr.textContent='Min'; mCol.appendChild(mHdr);
+
+    // Free-text input for any minute (e.g. 18, 07, 43)
+    const mInputWrap=document.createElement('div');
+    mInputWrap.style.cssText='padding:4px 6px 2px;';
+    const mInput=document.createElement('input');
+    mInput.type='number'; mInput.min=0; mInput.max=59;
+    mInput.value=parseInt(state.m||'0',10);
+    mInput.style.cssText='width:100%;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-family:inherit;font-size:13px;text-align:center;outline:none;';
+    mInput.title='Type any minute (0–59)';
+    mInput.placeholder='0–59';
+    mInput.addEventListener('focus',()=>mInput.select());
+    mInput.addEventListener('input',()=>{
+      let v=parseInt(mInput.value,10);
+      if(isNaN(v)) return;
+      if(v<0) v=0; if(v>59) v=59;
+      state.m=String(v).padStart(2,'0');
+      // Refresh selected highlight on quick buttons without full rebuild
+      mCol.querySelectorAll('.tp-item').forEach(el=>{
+        el.classList.toggle('selected', el.dataset.min===state.m);
+      });
+    });
+    mInputWrap.appendChild(mInput); mCol.appendChild(mInputWrap);
+
+    // Divider
+    const divider=document.createElement('div');
+    divider.style.cssText='font-size:9px;color:var(--hint);text-align:center;padding:2px 0 3px;text-transform:uppercase;letter-spacing:0.05em;';
+    divider.textContent='or pick'; mCol.appendChild(divider);
+
+    // Quick-select 5-min buttons
     MINUTES.forEach(mn=>{
-      const it=document.createElement('div'); it.className='tp-item'+(mn===state.m?' selected':'');
+      const it=document.createElement('div');
+      it.className='tp-item'+(mn===state.m?' selected':'');
+      it.dataset.min=mn;
       it.textContent=mn;
-      it.addEventListener('click',()=>{ state.m=mn; buildPopover(); });
+      it.addEventListener('click',()=>{
+        state.m=mn;
+        mInput.value=parseInt(mn,10);
+        buildPopover();
+      });
       mCol.appendChild(it);
     });
 
@@ -1585,8 +1619,8 @@ function buildTimePicker(label, value, placeholder, onChange){
     cols.appendChild(hCol); cols.appendChild(mCol); cols.appendChild(aCol);
     pop.appendChild(cols);
 
-    // Scroll selected into view
-    [hCol,mCol,aCol].forEach(col=>{
+    // Scroll selected into view (hour and AM/PM only — minute has input at top)
+    [hCol,aCol].forEach(col=>{
       const sel=col.querySelector('.selected');
       if(sel) setTimeout(()=>sel.scrollIntoView({block:'nearest'}),0);
     });
@@ -1597,9 +1631,13 @@ function buildTimePicker(label, value, placeholder, onChange){
     cancelBtn.addEventListener('click',()=>closePopover());
     const okBtn=document.createElement('button'); okBtn.className='tp-ok'; okBtn.textContent='Set Time';
     okBtn.addEventListener('click',()=>{
+      // Read directly from input in case user typed without leaving field
+      const typed=parseInt(mInput.value,10);
+      if(!isNaN(typed)&&typed>=0&&typed<=59){
+        state.m=String(typed).padStart(2,'0');
+      }
       const v24=to24(state.h,state.m,state.ampm);
       trigger.querySelector('.tp-val').textContent=display(v24);
-      // Add clear button if not there
       if(!trigger.querySelector('.tp-clear')){
         const clr=document.createElement('button'); clr.className='tp-clear'; clr.title='Clear'; clr.textContent='×';
         clr.addEventListener('click',ev=>{ ev.stopPropagation(); clearTime(); });
@@ -1633,12 +1671,13 @@ function buildTimePicker(label, value, placeholder, onChange){
   }
 
   function openPopover(){
-    // Close any other open pickers first
     document.querySelectorAll('.tp-popover.open').forEach(p=>{ if(p!==pop){ p.classList.remove('open'); } });
     buildPopover();
     pop.classList.add('open');
     trigger.classList.add('open');
     positionPopover();
+    // Auto-focus minute input for quick keyboard entry
+    setTimeout(()=>{ const inp=pop.querySelector('input[type=number]'); if(inp) inp.focus(); },80);
   }
   function closePopover(){
     pop.classList.remove('open');
