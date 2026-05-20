@@ -689,56 +689,7 @@ function buildTimesheet(){
   return div;
 }
 
-// ── Detailed Log for client — hours only, no edit/delete ───────
-function buildDetailedLogClient(mEntries,paidDates){
-  const monthH=totalHours(mEntries);
-  const sorted=[...mEntries].sort((a,b)=>b.date.localeCompare(a.date));
 
-  const card=document.createElement('div'); card.className='card'; card.style.marginTop='1.25rem';
-  const tblHdr=document.createElement('div'); tblHdr.className='card-header';
-  tblHdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear} — Detailed Log</div><div style="font-size:11px;color:var(--hint)">Latest first · paid entries are locked</div>`;
-  card.appendChild(tblHdr);
-
-  const wrap=document.createElement('div'); wrap.className='table-wrap';
-  const tbl=document.createElement('table');
-  tbl.innerHTML=`<thead><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Description</th><th style="text-align:right">Hours</th></tr></thead>`;
-  const tbody=document.createElement('tbody');
-
-  let lastDate='';
-  sorted.forEach(e=>{
-    const isPaidEntry=paidDates.has(e.date);
-    const tr=document.createElement('tr'); tr.style.cursor='default';
-    if(e.date!==lastDate&&lastDate!=='') tr.style.borderTop='2px solid var(--border)';
-    lastDate=e.date;
-
-    // Date cell
-    const dateTd=document.createElement('td');
-    const dateSpan=document.createElement('span');
-    dateSpan.style.cssText=`font-weight:600;font-size:13px;white-space:nowrap;color:${isPaidEntry?'#92400E':'var(--teal)'};`;
-    dateSpan.textContent=fmtDate(e.date);
-    dateTd.appendChild(dateSpan);
-    if(isPaidEntry){
-      const paidTag=document.createElement('span');
-      paidTag.style.cssText='font-size:9px;background:#FCD34D;color:#92400E;padding:1px 5px;border-radius:100px;margin-left:5px;font-weight:600;';
-      paidTag.textContent='PAID';
-      dateTd.appendChild(paidTag);
-    }
-    tr.appendChild(dateTd);
-
-    tr.innerHTML+=`
-      <td style="color:var(--muted);font-size:12px">${fmtTime(e.timeIn)}</td>
-      <td style="color:var(--muted);font-size:12px">${fmtTime(e.timeOut)}</td>
-      <td>${e.description||'<span style="color:var(--hint)">—</span>'}</td>
-      <td style="text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}">${parseFloat(e.hours||0).toFixed(1)}h</td>`;
-
-    tbody.appendChild(tr);
-  });
-
-  const tf=document.createElement('tfoot');
-  tf.innerHTML=`<tr><td colspan="4" style="font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.06em">Month Total</td><td style="text-align:right;font-weight:600">${monthH.toFixed(1)}h</td></tr>`;
-  tbl.appendChild(tbody); tbl.appendChild(tf); wrap.appendChild(tbl); card.appendChild(wrap);
-  return card;
-}
 
 // ── Accordion helper — builds a single date group ─────────────
 // Used by Daily, Weekly, and Monthly accordion views.
@@ -1021,7 +972,7 @@ function buildCalendar(){
       if(e.date!==lastDate&&lastDate!=='') tr.style.borderTop='2px solid var(--border)';
       lastDate=e.date;
 
-      // Clickable date cell
+      // ── Date cell (built entirely with DOM — no innerHTML+= after this) ──
       const dateTd=document.createElement('td');
       const dateBtn=document.createElement('button');
       dateBtn.style.cssText=`background:none;border:none;cursor:pointer;font-weight:600;font-family:inherit;font-size:13px;padding:0;white-space:nowrap;text-decoration:underline;text-underline-offset:3px;color:${isPaidEntry?'#92400E':'var(--teal)'};`;
@@ -1039,12 +990,15 @@ function buildCalendar(){
         dateTd.appendChild(tag);
       }
       tr.appendChild(dateTd);
-      tr.innerHTML+=`
-        <td style="color:var(--muted);font-size:12px">${fmtTime(e.timeIn)}</td>
-        <td style="color:var(--muted);font-size:12px">${fmtTime(e.timeOut)}</td>
-        <td>${e.description||'<span style="color:var(--hint)">—</span>'}</td>
-        <td style="text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}">${parseFloat(e.hours||0).toFixed(1)}h</td>`;
-      // Whole row clickable too
+
+      // ── Remaining cells — ALL appended individually (no innerHTML+= that would wipe listeners) ──
+      const mkTd=(html,css)=>{ const td=document.createElement('td'); if(css) td.style.cssText=css; td.innerHTML=html; return td; };
+      tr.appendChild(mkTd(fmtTime(e.timeIn),  'color:var(--muted);font-size:12px'));
+      tr.appendChild(mkTd(fmtTime(e.timeOut), 'color:var(--muted);font-size:12px'));
+      tr.appendChild(mkTd(e.description||'<span style="color:var(--hint)">—</span>',''));
+      tr.appendChild(mkTd(`${parseFloat(e.hours||0).toFixed(1)}h`, `text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}`));
+
+      // Whole row also clickable (skips if the button itself was the target)
       tr.addEventListener('click',ev=>{
         if(ev.target.tagName==='BUTTON'||ev.target.closest('button')) return;
         tsView='daily'; selectedCalDay=e.date; render();
