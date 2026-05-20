@@ -1,4 +1,13 @@
 {
-  "entries": [],
+  "entries": [
+    {
+      "id": "mpdjlp4r9kip",
+      "date": "2026-05-14",
+      "timeIn": "18:00",
+      "timeOut": "19:00",
+      "description": "",
+      "hours": "1.00"
+    }
+  ],
   "invoices": []
 }
