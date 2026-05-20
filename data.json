@@ -63,6 +63,22 @@
       "timeOut": "19:40",
       "description": "Day 3, Hands on training",
       "hours": "1.67"
+    },
+    {
+      "id": "mpdqounkampi",
+      "date": "2026-05-20",
+      "timeIn": "08:53",
+      "timeOut": "09:55",
+      "description": "Order Processing and customer support.",
+      "hours": "1.03"
+    },
+    {
+      "id": "mpdqr3a0777i",
+      "date": "2026-05-20",
+      "timeIn": "10:35",
+      "timeOut": "10:46",
+      "description": "sharing and setting up new google drive sharing for all orders.",
+      "hours": "0.18"
     }
   ],
   "invoices": [
