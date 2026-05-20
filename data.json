@@ -17,7 +17,7 @@
       "hours": 1,
       "subtotal": 5,
       "paypalFee": 0.72,
-      "status": "paid",
+      "status": "draft",
       "notes": "",
       "total": 5.72
     }
