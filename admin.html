@@ -37,23 +37,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .sidebar{width:230px;background:var(--white);border-right:1px solid var(--border);padding:1.25rem 0.75rem;display:flex;flex-direction:column;position:fixed;height:100vh;overflow-y:auto;}
 .main{margin-left:230px;flex:1;padding:2rem 2.5rem;max-width:980px;}
 
-/* Invoice watermark */
-.inv-doc-body{position:relative;}
-.inv-doc-body::before{
-  content:'';
-  position:absolute;
-  top:58%; left:50%;
-  transform:translate(-50%,-50%);
-  width:280px; height:280px;
-  background:url('img/3D_logo.png') center/contain no-repeat;
-  opacity:0.045;
-  pointer-events:none;
-  z-index:0;
-  -webkit-print-color-adjust:exact;
-  print-color-adjust:exact;
-}
-.inv-doc-body>*{position:relative;z-index:1;}
-
 /* Top header bar */
 .top-header{display:flex;align-items:center;justify-content:space-between;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem 1.25rem;margin-bottom:1.25rem;}
 .top-header-logo{display:flex;align-items:center;gap:12px;}
@@ -223,48 +206,13 @@ tfoot td{padding:10px 14px;font-size:12px;background:var(--bg);}
 
 /* Print */
 @media print{
-  @page{size:A4 portrait;margin:14mm 14mm 14mm 14mm;}
-
-  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
-  html,body{width:100%;margin:0;padding:0;background:white!important;}
-
-  /* Hide all UI chrome */
-  .sidebar,.no-print,.admin-bar,.sync-bar,
-  .top-header,.inv-print-hide{display:none!important;}
-
-  /* Main area resets */
-  .main{margin-left:0!important;padding:0!important;max-width:100%!important;width:100%!important;}
-
-  /* Invoice detail — hide the back/edit/print toolbar, show only doc */
-  .page-header.no-print{display:none!important;}
-
-  /* Invoice doc card fills full page width */
-  .inv-doc-body{
-    width:100%!important;
-    max-width:100%!important;
-    border-radius:0!important;
-    border:none!important;
-    box-shadow:none!important;
-    padding:0!important;
-  }
-
-  /* Tables full width */
-  .inv-doc-body table{width:100%!important;font-size:10px!important;}
-  .inv-doc-body thead th{font-size:9px!important;}
-
-  /* Watermark on print */
-  .inv-doc-body::before{display:block!important;opacity:0.045!important;}
-
-  /* Color-sensitive */
-  .inv-doc-body thead,
-  .inv-doc-body .badge-paid,
-  .inv-doc-body tfoot{
-    -webkit-print-color-adjust:exact!important;
-    print-color-adjust:exact!important;
-  }
-
-  /* Card borders OK on print */
-  .card{break-inside:avoid;}
+  @page{ size:A4; margin:12mm 10mm 12mm 10mm; }
+  html,body{ width:210mm; margin:0 auto; }
+  .sidebar,.no-print,.admin-bar,.sync-bar{ display:none!important; }
+  .main{ margin-left:0!important; padding:0!important; max-width:100%!important; }
+  .card{ border:1px solid #ccc!important; break-inside:avoid; }
+  /* Invoice detail print: hide back/action bar, show only doc card */
+  .inv-print-hide{ display:none!important; }
 }
 
 /* Responsive */
@@ -1487,7 +1435,7 @@ function buildInvoiceDetail(inv){
   wrap.appendChild(topBar);
 
   // Invoice document
-  const doc=document.createElement('div'); doc.className='card inv-doc-body'; doc.style.cssText='padding:2rem;max-width:700px;';
+  const doc=document.createElement('div'); doc.className='card'; doc.style.cssText='padding:2rem;max-width:700px;';
 
   // Invoice header
   const docHdr=document.createElement('div'); docHdr.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;';
