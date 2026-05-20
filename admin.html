@@ -988,19 +988,15 @@ function buildDetailedLog(mEntries,monthH,paidDates){
     const ePhp=fmtPhp(eAmt);
     tr.innerHTML+=`<td style="color:var(--muted);font-size:12px">${fmtTime(e.timeIn)}</td><td style="color:var(--muted);font-size:12px">${fmtTime(e.timeOut)}</td><td>${e.description||'<span style="color:var(--hint)">—</span>'}</td><td style="text-align:right">${parseFloat(e.hours||0).toFixed(2)}h</td><td style="text-align:right;font-weight:500;color:${isPaidEntry?'#92400E':'var(--teal)'}">${fmt(eAmt)}${ePhp?'<br><span style="font-size:10px;color:var(--muted);font-weight:400">≈ '+ePhp+'</span>':''}</td>`;
 
-    // Actions: paid entries — date is clickable to view; Edit+Delete for unpaid
+    // Actions: date click = day modal, row click = edit entry, delete btn = delete
+    // No Edit button — clicking the row (or date) is enough
     const td=document.createElement('td'); td.style.cssText='text-align:right;white-space:nowrap;';
-    if(isPaidEntry){
-      tr.style.cursor='default';
-    } else {
-      const editBtn=document.createElement('button'); editBtn.className='btn btn-outline btn-sm'; editBtn.textContent='Edit';
-      editBtn.addEventListener('click',ev=>{ ev.stopPropagation(); openEditEntryModal(e.id); });
-      td.appendChild(editBtn);
-      const db=document.createElement('button'); db.className='delbtn'; db.innerHTML='&times;'; db.title='Delete entry'; db.style.marginLeft='4px';
-      db.addEventListener('click',ev=>{ ev.stopPropagation(); if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); render(); } });
-      td.appendChild(db);
-      tr.addEventListener('click',ev=>{ if(ev.target.tagName==='BUTTON'||ev.target.closest('button')) return; openEditEntryModal(e.id); });
-    }
+    const db=document.createElement('button'); db.className='delbtn'; db.innerHTML='&times;'; db.title='Delete entry'; 
+    db.addEventListener('click',ev=>{ ev.stopPropagation(); if(confirm('Delete this entry?')){ data.entries=data.entries.filter(x=>x.id!==e.id); save(); render(); } });
+    td.appendChild(db);
+    // Clicking anywhere on row (except date btn and delete btn) opens edit modal
+    tr.style.cursor='pointer'; tr.title='Click to edit';
+    tr.addEventListener('click',ev=>{ if(ev.target.tagName==='BUTTON'||ev.target.closest('button')) return; openEditEntryModal(e.id); });
     tr.appendChild(td); tbody.appendChild(tr);
   });
 
@@ -1101,24 +1097,18 @@ function buildInvoices(){
       numBtn.addEventListener('click',()=>{ invoiceDetailId=inv.id; render(); });
       numTd.appendChild(numBtn);
 
-      const isPaidInv = inv.status==='paid';
-
-      // Status: paid = static badge only; others = dropdown
+      // Status: always a dropdown — no lock for any status
       const sc=document.createElement('td');
-      if(isPaidInv){
-        sc.innerHTML=`<span class="badge badge-paid">Paid</span>`;
-      } else {
-        const sel=document.createElement('select'); sel.className='status-sel '+(inv.status||'draft');
-        STATUSES.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=STATUS_LABELS[s]; if(s===inv.status)o.selected=true; sel.appendChild(o); });
-        sel.addEventListener('change',e=>{
-          const newStatus=e.target.value;
-          inv.status=newStatus; sel.className='status-sel '+newStatus; save();
-          toast('Status → '+STATUS_LABELS[newStatus]);
-          if(newStatus==='sent') handleSentStatus(inv);
-          render();
-        });
-        sc.appendChild(sel);
-      }
+      const sel=document.createElement('select'); sel.className='status-sel '+(inv.status||'draft');
+      STATUSES.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=STATUS_LABELS[s]; if(s===inv.status)o.selected=true; sel.appendChild(o); });
+      sel.addEventListener('change',e=>{
+        const newStatus=e.target.value;
+        inv.status=newStatus; sel.className='status-sel '+newStatus; save();
+        toast('Status → '+STATUS_LABELS[newStatus]);
+        if(newStatus==='sent') handleSentStatus(inv);
+        render();
+      });
+      sc.appendChild(sel);
 
       // Notes: always editable (even for paid)
       const nc=document.createElement('td');
