@@ -249,6 +249,43 @@ function getMonthEntries(m,y){ return data.entries.filter(e=>{ if(!e.date)return
 
 // ── Auto-filename print ───────────────────────────────────────
 const _defaultTitle='Admin — Stephen Reyes Time Tracker';
+
+// ── Peso / PHP conversion ─────────────────────────────────────
+// Rate is fetched from a free FX API and cached for 1 hour.
+// Only used in admin view — never shown in invoice PDF or index.html.
+let phpRate = parseFloat(localStorage.getItem('sr_php_rate')||'0') || 0;
+let phpRateFetched = parseInt(localStorage.getItem('sr_php_rate_ts')||'0');
+
+async function fetchPhpRate(){
+  const ONE_HOUR = 3600000;
+  if(phpRate > 0 && Date.now() - phpRateFetched < ONE_HOUR) return; // cached
+  try{
+    // ExchangeRate-API free tier (no key needed for USD base)
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    if(res.ok){
+      const json = await res.json();
+      const rate = json.rates && json.rates.PHP;
+      if(rate){
+        phpRate = rate;
+        localStorage.setItem('sr_php_rate', rate.toString());
+        localStorage.setItem('sr_php_rate_ts', Date.now().toString());
+        render(); // re-render now that rate is available
+      }
+    }
+  } catch(e){ /* fail silently — just don't show PHP */ }
+}
+
+function fmtPHP(usdAmount){
+  if(!phpRate || phpRate <= 0) return '';
+  const php = parseFloat(usdAmount||0) * phpRate;
+  return '₱'+php.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+// Small inline PHP tag shown next to USD amounts (admin only)
+function phpTag(usdAmount){
+  if(!phpRate || phpRate <= 0) return '';
+  return ` <span style="font-size:10px;color:var(--muted);font-weight:400;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 5px;margin-left:3px;vertical-align:middle;">${fmtPHP(usdAmount)}</span>`;
+}
 function printWithName(filename){
   const old=document.title; document.title=filename;
   window.print();
@@ -300,7 +337,17 @@ function logout(){ loggedIn=false; sessionStorage.removeItem('sr_auth'); render(
 
 // ── Data ─────────────────────────────────────────────────────
 function save(){ localStorage.setItem('sr_tracker_v1',JSON.stringify(data)); }
-function loadLocal(){ const r=localStorage.getItem('sr_tracker_v1'); if(r){ try{ data=JSON.parse(r); }catch(e){} } }
+function loadLocal(){
+  const r=localStorage.getItem('sr_tracker_v1'); if(r){ try{ data=JSON.parse(r); }catch(e){} }
+  // Restore saved GitHub PAT (encrypted with btoa so it's not plain text in storage)
+  const savedPat=localStorage.getItem('sr_gh_pat');
+  if(savedPat && !ghToken){ try{ ghToken=atob(savedPat); }catch(e){} }
+}
+function savePat(token){
+  ghToken=token;
+  if(token) localStorage.setItem('sr_gh_pat', btoa(token));
+  else localStorage.removeItem('sr_gh_pat');
+}
 
 // ── GitHub sync ───────────────────────────────────────────────
 function exportData(){
@@ -331,6 +378,7 @@ function render(){
   root.innerHTML='';
   if(!loggedIn){ root.appendChild(buildLogin()); return; }
   root.appendChild(buildApp());
+  fetchPhpRate(); // fetch in background after render — re-renders when ready
 }
 
 // ── Login ─────────────────────────────────────────────────────
@@ -374,19 +422,50 @@ function buildApp(){
   vb.addEventListener('click',()=>{ window.location.href='index.html'; });
   ab.appendChild(vb); main.appendChild(ab);
 
-  // GitHub sync bar
+  // GitHub sync bar — PAT saved, no re-entry needed
   const sb=document.createElement('div'); sb.className='sync-bar no-print';
   const lbl=document.createElement('span'); lbl.className='sync-label'; lbl.textContent='GitHub Sync:';
+
+  // PAT input — shows placeholder if saved, actual value if editing
   const ti=document.createElement('input'); ti.className='form-input'; ti.type='password';
-  ti.placeholder='Paste your GitHub PAT to sync data.json…'; ti.value=ghToken; ti.style.cssText='flex:1;min-width:160px;margin:0;';
-  ti.addEventListener('input',e=>ghToken=e.target.value);
+  ti.style.cssText='flex:1;min-width:120px;max-width:280px;margin:0;';
+  if(ghToken){
+    ti.value=ghToken;
+    ti.placeholder='Token saved ✓';
+  } else {
+    ti.placeholder='Paste GitHub PAT to sync…';
+  }
+  ti.addEventListener('input',e=>savePat(e.target.value));
+
+  // Clear PAT button (shown only when token is saved)
+  const clearBtn=document.createElement('button'); clearBtn.className='btn btn-outline btn-sm';
+  clearBtn.style.display=ghToken?'inline-flex':'none';
+  clearBtn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Clear`;
+  clearBtn.title='Remove saved token';
+  clearBtn.addEventListener('click',()=>{ savePat(''); ti.value=''; ti.placeholder='Paste GitHub PAT to sync…'; clearBtn.style.display='none'; toast('Token cleared.'); });
+
   const syncBtn=document.createElement('button'); syncBtn.className='btn btn-primary btn-sm';
   syncBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg> Sync`;
-  syncBtn.addEventListener('click',syncGitHub);
+  syncBtn.title=ghToken?'Sync to GitHub (token saved)':'Enter token first';
+  syncBtn.addEventListener('click',async()=>{
+    syncBtn.disabled=true; syncBtn.textContent='Syncing…';
+    await syncGitHub();
+    syncBtn.disabled=false;
+    syncBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg> Sync`;
+    if(ghToken){ clearBtn.style.display='inline-flex'; }
+  });
+
   const expBtn=document.createElement('button'); expBtn.className='btn btn-outline btn-sm';
   expBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export`;
   expBtn.addEventListener('click',exportData);
-  sb.appendChild(lbl); sb.appendChild(ti); sb.appendChild(syncBtn); sb.appendChild(expBtn);
+
+  // Token + PHP rate status
+  const statusDot=document.createElement('span');
+  statusDot.style.cssText=`font-size:11px;color:${ghToken?'var(--teal)':'var(--hint)'};white-space:nowrap;flex-shrink:0;`;
+  const phpInfo = phpRate > 0 ? ` · ₱${phpRate.toFixed(2)}/USD` : '';
+  statusDot.textContent=(ghToken?'● Token saved':'○ No token')+phpInfo;
+
+  sb.appendChild(lbl); sb.appendChild(ti); sb.appendChild(clearBtn); sb.appendChild(syncBtn); sb.appendChild(expBtn); sb.appendChild(statusDot);
   main.appendChild(sb);
 
   const pages={dashboard:buildDashboard,timesheet:buildTimesheet,invoices:buildInvoices};
@@ -473,23 +552,23 @@ function buildDashboard(){
   const unpaidAmt=unpaidInvs.reduce((s,i)=>s+(parseFloat(i.total)||0),0);
   const paidDates=getPaidDates();
 
-  // ── Stats row (same 3 cards as index.html + amounts) ─────────
+  // ── Stats row ─────────────────────────────────────────────────
   const sg=document.createElement('div'); sg.className='stats-grid';
   sg.innerHTML=`
     <div class="stat-card">
       <div class="stat-label">${MONTHS[dashMonth]} ${period.label} Hours</div>
       <div class="stat-value teal">${periodH.toFixed(1)}</div>
-      <div class="stat-sub">bi-monthly period &nbsp;·&nbsp; ${fmt(periodH*RATE)}</div>
+      <div class="stat-sub">bi-monthly period &nbsp;·&nbsp; ${fmt(periodH*RATE)}${phpTag(periodH*RATE)}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">${MONTHS[dashMonth]} ${dashYear} Total</div>
       <div class="stat-value">${mH.toFixed(1)}</div>
-      <div class="stat-sub">full month hours &nbsp;·&nbsp; ${fmt(mH*RATE)}</div>
+      <div class="stat-sub">full month hours &nbsp;·&nbsp; ${fmt(mH*RATE)}${phpTag(mH*RATE)}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Outstanding Invoices</div>
       <div class="stat-value${unpaidCount===0?' teal':''}">${unpaidCount}</div>
-      <div class="stat-sub">${unpaidCount===0?'All invoices paid ✓':fmt(unpaidAmt)+' outstanding'}</div>
+      <div class="stat-sub">${unpaidCount===0?'All invoices paid ✓':fmt(unpaidAmt)+phpTag(unpaidAmt)+' outstanding'}</div>
     </div>`;
   div.appendChild(sg);
 
@@ -526,16 +605,16 @@ function buildDashboard(){
       const descEl=document.createElement('span'); descEl.style.cssText='color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
       descEl.innerHTML=(firstDesc||'<span style="color:var(--hint)">—</span>')+moreLabel; left.appendChild(descEl);
 
-      // Right: amount + hours
+      // Right: amount + hours + PHP
       const right=document.createElement('div'); right.style.cssText='white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0;';
-      right.innerHTML=`<span style="font-weight:600;color:${isLocked?'#92400E':'var(--teal)'}">${fmt(dayH*RATE)}</span><span style="color:var(--hint);font-size:11px">${dayH.toFixed(1)}h</span>`;
+      right.innerHTML=`<span style="font-weight:600;color:${isLocked?'#92400E':'var(--teal)'}">${fmt(dayH*RATE)}</span>${phpRate>0?`<span style="font-size:11px;color:var(--muted)">${fmtPHP(dayH*RATE)}</span>`:''}<span style="color:var(--hint);font-size:11px">${dayH.toFixed(1)}h</span>`;
 
       r.appendChild(left); r.appendChild(right);
       r.addEventListener('click',()=>{ tsMonth=new Date(dateStr+'T00:00:00').getMonth(); tsYear=new Date(dateStr+'T00:00:00').getFullYear(); openDayModal(dateStr); });
       body.appendChild(r);
     });
     const tot=document.createElement('div'); tot.style.cssText='padding:10px 0;display:flex;justify-content:space-between;font-size:13px;font-weight:500;border-top:1px solid var(--border);margin-top:4px;';
-    tot.innerHTML=`<span style="color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:0.06em">Period Total</span><span style="color:var(--teal)">${periodH.toFixed(1)}h &nbsp;·&nbsp; ${fmt(periodH*RATE)}</span>`;
+    tot.innerHTML=`<span style="color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:0.06em">Period Total</span><span style="color:var(--teal)">${periodH.toFixed(1)}h &nbsp;·&nbsp; ${fmt(periodH*RATE)}${phpRate>0?' <span style="font-size:11px;color:var(--muted);font-weight:400">'+fmtPHP(periodH*RATE)+'</span>':''}</span>`;
     body.appendChild(tot);
   }
   card.appendChild(body); div.appendChild(card);
@@ -660,7 +739,7 @@ function buildTimesheet(){
 function buildTsCalendar(mEntries,monthH,paidDates){
   const calWrap=document.createElement('div'); calWrap.className='card'; calWrap.style.marginBottom='1.25rem';
   const calHdr=document.createElement('div'); calHdr.className='card-header';
-  calHdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear}</div><div style="font-size:12px;color:var(--muted)">${monthH.toFixed(1)}h &middot; ${fmt(monthH*RATE)}</div>`;
+  calHdr.innerHTML=`<div class="card-title">${MONTHS[tsMonth]} ${tsYear}</div><div style="font-size:12px;color:var(--muted)">${monthH.toFixed(1)}h &middot; ${fmt(monthH*RATE)}${phpRate>0?' · <span style="color:var(--muted)">'+fmtPHP(monthH*RATE)+'</span>':''}</div>`;
   calWrap.appendChild(calHdr);
 
   const calBody=document.createElement('div'); calBody.style.padding='1rem';
@@ -799,7 +878,7 @@ function buildAdminAccordion(dateStr, entries, paidDates){
   if(isPaidDay){ const p=document.createElement('span'); p.style.cssText='font-size:9px;background:#FCD34D;color:#92400E;padding:1px 5px;border-radius:100px;margin-left:6px;font-weight:600;'; p.textContent='PAID'; dateSpan.appendChild(p); }
 
   const summary=document.createElement('span'); summary.className='acc-summary';
-  summary.innerHTML=`${dH.toFixed(1)}h &nbsp;<span style="color:${isPaidDay?'#92400E':'var(--teal)'};font-weight:600">${fmt(dH*RATE)}</span>`;
+  summary.innerHTML=`${dH.toFixed(1)}h &nbsp;<span style="color:${isPaidDay?'#92400E':'var(--teal)'};font-weight:600">${fmt(dH*RATE)}</span>${phpRate>0?` <span style="font-size:10px;color:var(--muted);font-weight:400">${fmtPHP(dH*RATE)}</span>`:''}`;
 
   headerEl.appendChild(toggle); headerEl.appendChild(dateSpan); headerEl.appendChild(summary);
   headerEl.addEventListener('click',()=>{ if(openAccordions.has(dateStr))openAccordions.delete(dateStr); else openAccordions.add(dateStr); render(); });
@@ -808,12 +887,13 @@ function buildAdminAccordion(dateStr, entries, paidDates){
   const bodyEl=document.createElement('div'); bodyEl.className='acc-body'+(isOpen?' open':'');
   entries.sort((a,b)=>(a.timeIn||'').localeCompare(b.timeIn||'')).forEach(e=>{
     const entryDiv=document.createElement('div'); entryDiv.className='acc-entry';
-    entryDiv.innerHTML=`<div class="acc-entry-time">${fmtTime(e.timeIn)} – ${fmtTime(e.timeOut)}</div><div class="acc-entry-desc">${e.description||'<span style="color:var(--hint)">No description</span>'}</div><div class="acc-entry-hrs">${parseFloat(e.hours||0).toFixed(1)}h</div><div class="acc-entry-amt">${fmt((parseFloat(e.hours)||0)*RATE)}</div>`;
+    const entryAmt=(parseFloat(e.hours)||0)*RATE;
+    entryDiv.innerHTML=`<div class="acc-entry-time">${fmtTime(e.timeIn)} – ${fmtTime(e.timeOut)}</div><div class="acc-entry-desc">${e.description||'<span style="color:var(--hint)">No description</span>'}</div><div class="acc-entry-hrs">${parseFloat(e.hours||0).toFixed(1)}h</div><div class="acc-entry-amt">${fmt(entryAmt)}${phpRate>0?` <span style="font-size:10px;color:var(--muted);font-weight:400">${fmtPHP(entryAmt)}</span>`:''}</div>`;
     bodyEl.appendChild(entryDiv);
   });
   if(entries.length){
     const ft=document.createElement('div'); ft.className='acc-footer';
-    ft.innerHTML=`<span>Day total: <strong>${dH.toFixed(1)}h</strong></span><span style="color:${isPaidDay?'#92400E':'var(--teal)'}"><strong>${fmt(dH*RATE)}</strong></span>`;
+    ft.innerHTML=`<span>Day total: <strong>${dH.toFixed(1)}h</strong></span><span style="color:${isPaidDay?'#92400E':'var(--teal)'}"><strong>${fmt(dH*RATE)}</strong>${phpRate>0?` <span style="font-size:11px;color:var(--muted);font-weight:400">${fmtPHP(dH*RATE)}</span>`:''}</span>`;
     bodyEl.appendChild(ft);
   }
   group.appendChild(bodyEl);
@@ -998,9 +1078,9 @@ function buildInvoices(){
       tr.appendChild(numTd);
       const periodTd=document.createElement('td'); periodTd.style.cssText='white-space:nowrap;color:var(--muted);font-size:12px;'; periodTd.textContent=inv.label||'—'; tr.appendChild(periodTd);
       const hTd=document.createElement('td'); hTd.style.textAlign='right'; hTd.textContent=parseFloat(inv.hours||0).toFixed(2)+'h'; tr.appendChild(hTd);
-      const sTd=document.createElement('td'); sTd.style.cssText='text-align:right;color:var(--muted);font-size:12px;'; sTd.textContent=fmt(inv.subtotal||inv.total||0); tr.appendChild(sTd);
+      const sTd=document.createElement('td'); sTd.style.cssText='text-align:right;color:var(--muted);font-size:12px;'; sTd.innerHTML=fmt(inv.subtotal||inv.total||0)+(phpRate>0?`<br><span style="font-size:10px;color:var(--muted)">${fmtPHP(inv.subtotal||inv.total||0)}</span>`:''); tr.appendChild(sTd);
       const fTd=document.createElement('td'); fTd.style.cssText='text-align:right;color:var(--muted);font-size:12px;'; fTd.textContent=fmt(ppFee); tr.appendChild(fTd);
-      const tTd=document.createElement('td'); tTd.style.cssText='text-align:right;font-weight:600;color:var(--teal);'; tTd.textContent=fmt(grandTotal); tr.appendChild(tTd);
+      const tTd=document.createElement('td'); tTd.style.cssText='text-align:right;font-weight:600;color:var(--teal);'; tTd.innerHTML=fmt(grandTotal)+(phpRate>0?`<br><span style="font-size:10px;color:var(--muted);font-weight:400">${fmtPHP(grandTotal)}</span>`:''); tr.appendChild(tTd);
       tr.appendChild(sc); tr.appendChild(nc);
 
       // Delete: hidden for paid invoices
