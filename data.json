@@ -89,7 +89,7 @@
       "hours": 8.56,
       "subtotal": 42.800000000000004,
       "paypalFee": 2.42,
-      "status": "paid",
+      "status": "draft",
       "notes": "78F76228N1532732K",
       "total": 45.220000000000006,
       "phpRateAtInvoice": 59.080799999999996,
