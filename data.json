@@ -94,7 +94,10 @@
       "total": 45.220000000000006,
       "phpRateAtInvoice": 59.080799999999996,
       "phpTotalAtInvoice": "2671.63",
-      "date": "2026-05-19"
+      "date": "2026-05-19",
+      "phpRateOnDate": 59.080799999999996,
+      "phpRateDate": "2026-05-19",
+      "invoiceDate": "2026-05-19"
     }
   ]
 }
