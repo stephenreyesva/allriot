@@ -266,7 +266,7 @@ tfoot td{padding:10px 14px;font-size:12px;background:var(--bg);}
 // ── Config ────────────────────────────────────────────────────
 const AUTH_HASH = '2321c4635e1eb7dd4877116b80615a86951680a020cc220f39172c24109efe5a';
 const PROFILE   = { name:'Stephen Reyes', email:'stephen.reyes.va@gmail.com', role:'E-Commerce Virtual Assistant', rate:5 };
-const CLIENT    = { name:'Margarite', company:'All Riot Ltd.' };
+const CLIENT    = { name:'Margarita Goroshkevich', company:'All Riot Ltd.', email:'info@allriot.com', website:'allriot.com' };
 const PAYMENT   = { paypal:'stephen.reyes.va@gmail.com' };
 const GH        = { user:'stephenreyesva', repo:'allriot', branch:'main' };
 
@@ -1459,6 +1459,8 @@ function buildInvoiceDetail(inv){
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">Bill To</div>
       <div style="font-weight:500">${CLIENT.name}</div>
       <div style="font-size:12px;color:var(--muted)">${CLIENT.company}</div>
+      <div style="font-size:12px;color:var(--muted)">${CLIENT.email}</div>
+      <div style="font-size:12px;color:var(--teal)"><a href="https://${CLIENT.website}" target="_blank" style="color:var(--teal);text-decoration:none;">${CLIENT.website}</a></div>
     </div>
     <div style="text-align:right">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">Period</div>
@@ -2044,7 +2046,7 @@ function buildModal(){
     m.appendChild(fg('Notes','text',md.notes||'','e.g. Payment due in 7 days',v=>md.notes=v));
 
     const eNote=document.createElement('div'); eNote.style.cssText='background:var(--blue-bg);border:1px solid #BFDBFE;border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--blue);margin-top:4px;';
-    eNote.innerHTML=`📧 <strong>Email:</strong> Setting status to <em>Sent</em> will trigger an email notification to Margarite (email TBD). <a href="#" style="color:var(--blue)" onclick="return false">Configure email</a>`;
+    eNote.innerHTML=`📧 <strong>Email:</strong> Setting status to <em>Sent</em> will trigger an email notification to ${CLIENT.name} (${CLIENT.email}). <a href="#" style="color:var(--blue)" onclick="return false">Configure email</a>`;
     m.appendChild(eNote);
 
     m.appendChild(foot(modal.isEdit?'Save changes':'Create invoice'));
