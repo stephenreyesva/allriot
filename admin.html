@@ -269,7 +269,9 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 // ── PHP peso conversion ───────────────────────────────────────
 let phpRate     = null;
 let phpRateTime = null;
+let phpRateCache = {}; // { 'YYYY-MM-DD': rate }  per-date cache
 
+// Fetch live rate (for today or as fallback)
 async function fetchPhpRate(){
   if(phpRate && phpRateTime && (Date.now()-phpRateTime)<30*60*1000) return;
   try{
@@ -278,14 +280,39 @@ async function fetchPhpRate(){
     const json=await res.json();
     phpRate = json.rates && json.rates.PHP ? json.rates.PHP : null;
     phpRateTime = Date.now();
-    // PayPal applies ~4.4% spread on conversion — apply to get approximate receive amount
-    if(phpRate) phpRate = phpRate * 0.956;
+    if(phpRate) phpRate = phpRate * 0.956; // PayPal ~4.4% spread
   }catch(e){ phpRate=null; }
 }
 
-function fmtPhp(usd){
-  if(!phpRate||!usd) return '';
-  return '₱'+(usd*phpRate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+// Fetch historical rate for a specific YYYY-MM-DD date
+// Uses exchangerate.host historical endpoint; falls back to live rate
+async function fetchPhpRateForDate(dateStr){
+  if(!dateStr) return phpRate;
+  const today = new Date().toISOString().slice(0,10);
+  if(dateStr >= today) { await fetchPhpRate(); return phpRate; }
+  if(phpRateCache[dateStr]) return phpRateCache[dateStr];
+  try{
+    const [y,m,d] = dateStr.split('-');
+    // exchangerate.host historical: free, no key needed
+    const res = await fetch(`https://api.exchangerate.host/${dateStr}?base=USD&symbols=PHP`);
+    if(!res.ok) throw new Error('bad response');
+    const json = await res.json();
+    let rate = json.rates && json.rates.PHP ? json.rates.PHP : null;
+    if(rate){
+      rate = rate * 0.956; // PayPal spread
+      phpRateCache[dateStr] = rate;
+      return rate;
+    }
+  } catch(e){}
+  // Fallback to live rate
+  await fetchPhpRate();
+  return phpRate;
+}
+
+function fmtPhp(usd, rate){
+  const r = rate || phpRate;
+  if(!r||!usd) return '';
+  return '\u20B1'+(usd*r).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 
 // ── State ─────────────────────────────────────────────────────
@@ -1455,6 +1482,44 @@ function buildInvoiceDetail(inv){
   if(inv.notes){ payInfo.innerHTML+=`<div style="margin-top:8px;font-size:12px;color:var(--muted)">Note: ${inv.notes}</div>`; }
   doc.appendChild(payInfo);
 
+  // ── PHP Conversion panel (admin only, no-print) ───────────────
+  const phpPanel=document.createElement('div'); phpPanel.className='no-print';
+  phpPanel.style.cssText='margin-top:1.25rem;background:var(--teal-bg);border:1px solid var(--teal-mid);border-radius:var(--radius-sm);padding:14px 16px;';
+  const storedRate=inv.phpRateOnDate;
+  const storedDate=inv.phpRateDate||inv.invoiceDate||'—';
+  if(storedRate){
+    const phpTotal=(grandTotal*storedRate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+    phpPanel.innerHTML=`
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--teal-d);margin-bottom:10px">🏦 PayPal PHP Conversion (Admin only)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:8px;">
+        <div><div style="font-size:10px;color:var(--teal-d);font-weight:500;margin-bottom:3px">USD Amount</div><div style="font-size:16px;font-weight:700;color:var(--teal-d)">${fmt(grandTotal)}</div></div>
+        <div><div style="font-size:10px;color:var(--teal-d);font-weight:500;margin-bottom:3px">Rate (PayPal est.)</div><div style="font-size:16px;font-weight:700;color:var(--teal-d)">₱${storedRate.toFixed(2)}/USD</div></div>
+        <div><div style="font-size:10px;color:var(--teal-d);font-weight:500;margin-bottom:3px">PHP Equivalent</div><div style="font-size:16px;font-weight:700;color:var(--teal-d)">₱${phpTotal}</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--teal-d);opacity:0.8">Rate as of ${storedDate} &nbsp;·&nbsp; Invoice date: ${inv.invoiceDate||storedDate}</div>`;
+  } else {
+    // No stored rate — fetch live and show
+    phpPanel.innerHTML=`<div style="font-size:12px;color:var(--teal-d)">🔄 Loading PHP conversion rate…</div>`;
+    (async()=>{
+      const rate=await fetchPhpRateForDate(inv.invoiceDate||new Date().toISOString().slice(0,10));
+      if(rate&&phpPanel.isConnected){
+        const phpTotal=(grandTotal*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+        const rateDate=inv.invoiceDate||new Date().toISOString().slice(0,10);
+        phpPanel.innerHTML=`
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--teal-d);margin-bottom:10px">🏦 PayPal PHP Conversion (Admin only)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:8px;">
+            <div><div style="font-size:10px;color:var(--teal-d);font-weight:500;margin-bottom:3px">USD Amount</div><div style="font-size:16px;font-weight:700;color:var(--teal-d)">${fmt(grandTotal)}</div></div>
+            <div><div style="font-size:10px;color:var(--teal-d);font-weight:500;margin-bottom:3px">Rate (PayPal est.)</div><div style="font-size:16px;font-weight:700;color:var(--teal-d)">₱${rate.toFixed(2)}/USD</div></div>
+            <div><div style="font-size:10px;color:var(--teal-d);font-weight:500;margin-bottom:3px">PHP Equivalent</div><div style="font-size:16px;font-weight:700;color:var(--teal-d)">₱${phpTotal}</div></div>
+          </div>
+          <div style="font-size:11px;color:var(--teal-d);opacity:0.8">Rate as of ${rateDate} &nbsp;·&nbsp; Invoice date: ${inv.invoiceDate||rateDate}</div>`;
+        // Save rate to invoice for future use
+        inv.phpRateOnDate=rate; inv.phpRateDate=rateDate; save();
+      }
+    })();
+  }
+  doc.appendChild(phpPanel);
+
   wrap.appendChild(doc);
   return wrap;
 }
@@ -1481,7 +1546,6 @@ function openEntryModal(prefillDate){
 }
 function openInvoiceModal(existingId){
   if(existingId){
-    // Edit existing invoice
     const inv=data.invoices.find(i=>i.id===existingId);
     if(!inv) return;
     modal={type:'invoice', isEdit:true, data:{...inv}, onSave(){
@@ -1489,8 +1553,9 @@ function openInvoiceModal(existingId){
       if(idx>-1){ data.invoices[idx]=this.data; save(); modal=null; invoiceDetailId=this.data.id; render(); toast('Invoice updated!'); }
     }};
   } else {
+    const today=new Date().toISOString().slice(0,10);
     const n='INV-'+String(data.invoices.length+1).padStart(3,'0');
-    modal={type:'invoice', isEdit:false, data:{number:n,label:'',hours:'',subtotal:'',paypalFee:'',status:'draft',notes:''}, onSave(){
+    modal={type:'invoice', isEdit:false, data:{number:n,label:'',invoiceDate:today,hours:'',subtotal:'',paypalFee:'',phpRateOnDate:null,phpRateDate:null,status:'draft',notes:''}, onSave(){
       if(!this.data.number){ toast('Invoice number required.'); return; }
       if(!this.data.label){ toast('Please select a period.'); return; }
       const h=parseFloat(this.data.hours)||0;
@@ -1828,6 +1893,21 @@ function buildModal(){
     r1.appendChild(fg('Invoice number','text',md.number,'INV-001',v=>md.number=v));
     r1.appendChild(sg); m.appendChild(r1);
 
+    // Invoice Date — drives PHP rate fetch
+    const dateGrp=document.createElement('div'); dateGrp.className='form-group';
+    dateGrp.innerHTML=`<label class="form-label">Invoice Date <span style="color:var(--hint);font-weight:400">(sets PayPal rate for that date)</span></label>`;
+    const dateInp=document.createElement('input'); dateInp.className='form-input'; dateInp.type='date';
+    dateInp.value=md.invoiceDate||new Date().toISOString().slice(0,10);
+    dateInp.addEventListener('change',async e=>{
+      md.invoiceDate=e.target.value;
+      // Fetch rate for this specific date
+      const rate=await fetchPhpRateForDate(md.invoiceDate);
+      md.phpRateOnDate=rate;
+      md.phpRateDate=md.invoiceDate;
+      updatePhpPanel(md);
+    });
+    dateGrp.appendChild(dateInp); m.appendChild(dateGrp);
+
     // Period label dropdown
     const pg=document.createElement('div'); pg.className='form-group';
     pg.innerHTML=`<label class="form-label">Period <span style="color:var(--hint);font-weight:400">(bi-monthly)</span></label>`;
@@ -1839,7 +1919,6 @@ function buildModal(){
     });
     pSel.addEventListener('change',e=>{
       md.label=e.target.value;
-      // Auto-calculate hours from timesheet
       const entries=getEntriesForPeriod(md.label);
       const h=totalHours(entries);
       md.hours=h.toFixed(2);
@@ -1847,21 +1926,20 @@ function buildModal(){
       md.subtotal=sub.toFixed(2);
       const fee=calcPaypalFee(sub);
       md.paypalFee=fee.toFixed(2);
-      // Update displayed fields
       const hf=document.getElementById('inv-hours'); if(hf) hf.value=md.hours;
       const sf=document.getElementById('inv-sub');   if(sf) sf.value=md.subtotal;
       const ff=document.getElementById('inv-fee');   if(ff) ff.value=md.paypalFee;
-      const tf2=document.getElementById('inv-total'); if(tf2) tf2.textContent=fmt((parseFloat(md.subtotal)||0)+(parseFloat(md.paypalFee)||0));
-      // Show breakdown preview
+      updateTotalDisplay(md);
       updateBreakdownPreview(entries, md);
+      updatePhpPanel(md);
     });
     pg.appendChild(pSel); m.appendChild(pg);
 
-    // Breakdown preview area
+    // Breakdown preview
     const bpArea=document.createElement('div'); bpArea.id='breakdown-preview'; m.appendChild(bpArea);
     if(md.label){ updateBreakdownPreview(getEntriesForPeriod(md.label), md, bpArea); }
 
-    // Hours + Subtotal row (read-only, auto-filled)
+    // Hours + Subtotal row (auto)
     const r2=document.createElement('div'); r2.className='form-row';
     const hg=document.createElement('div'); hg.className='form-group';
     hg.innerHTML=`<label class="form-label">Total Hours <span style="color:var(--hint);font-weight:400">(auto)</span></label>`;
@@ -1875,7 +1953,7 @@ function buildModal(){
     subg.appendChild(subInp);
     r2.appendChild(hg); r2.appendChild(subg); m.appendChild(r2);
 
-    // PayPal fee row
+    // PayPal fee + Total Due row
     const r3=document.createElement('div'); r3.className='form-row';
     const fg2=document.createElement('div'); fg2.className='form-group';
     fg2.innerHTML=`<label class="form-label">PayPal Fee <span style="color:var(--hint);font-weight:400">(3.49% + $0.49, editable)</span></label>`;
@@ -1883,17 +1961,58 @@ function buildModal(){
     fInp.value=md.paypalFee||''; fInp.step='0.01'; fInp.placeholder='Auto-calculated';
     fInp.addEventListener('input',e=>{
       md.paypalFee=e.target.value;
-      const tf2=document.getElementById('inv-total');
-      if(tf2) tf2.textContent=fmt((parseFloat(md.subtotal)||0)+(parseFloat(md.paypalFee)||0));
+      updateTotalDisplay(md);
+      updatePhpPanel(md);
     });
     fg2.appendChild(fInp);
     const tg2=document.createElement('div'); tg2.className='form-group';
     tg2.innerHTML=`<label class="form-label">Total Due</label><div id="inv-total" style="font-size:18px;font-weight:600;color:var(--teal);padding:8px 0;">${fmt((parseFloat(md.subtotal||0))+(parseFloat(md.paypalFee||0)))}</div>`;
     r3.appendChild(fg2); r3.appendChild(tg2); m.appendChild(r3);
 
+    // ── PayPal PHP Conversion panel ───────────────────────────────
+    const phpBox=document.createElement('div'); phpBox.id='inv-php-box';
+    phpBox.style.cssText='background:var(--teal-bg);border:1px solid var(--teal-mid);border-radius:var(--radius-sm);padding:12px 14px;margin:4px 0 8px;';
+    m.appendChild(phpBox);
+
+    // Helper to update total display
+    function updateTotalDisplay(md){
+      const tf=document.getElementById('inv-total');
+      if(tf) tf.textContent=fmt((parseFloat(md.subtotal)||0)+(parseFloat(md.paypalFee)||0));
+    }
+
+    // Helper to update the PHP panel
+    function updatePhpPanel(md){
+      const box=document.getElementById('inv-php-box'); if(!box) return;
+      const grandTotal=(parseFloat(md.subtotal)||0)+(parseFloat(md.paypalFee)||0);
+      const rate=md.phpRateOnDate;
+      const rateDate=md.phpRateDate||md.invoiceDate;
+      if(!rate||!grandTotal){ box.innerHTML=`<div style="font-size:12px;color:var(--teal-d);opacity:0.7">🔄 Set invoice date and period to see PHP conversion</div>`; return; }
+      const phpTotal=(grandTotal*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+      const rateFmt=rate.toFixed(2);
+      const subtotalPhp=((parseFloat(md.subtotal)||0)*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+      const feePhp=((parseFloat(md.paypalFee)||0)*rate).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+      box.innerHTML=`
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--teal-d);margin-bottom:10px">🏦 PayPal PHP Conversion (Admin only)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div><div style="font-size:10px;color:var(--teal-d);font-weight:500;margin-bottom:2px">USD Amount</div><div style="font-size:14px;font-weight:600;color:var(--teal-d)">${fmt(grandTotal)}</div></div>
+          <div><div style="font-size:10px;color:var(--teal-d);font-weight:500;margin-bottom:2px">Rate (PayPal est.)</div><div style="font-size:14px;font-weight:600;color:var(--teal-d)">₱${rateFmt}/USD</div></div>
+          <div><div style="font-size:10px;color:var(--teal-d);font-weight:500;margin-bottom:2px">PHP Equivalent</div><div style="font-size:14px;font-weight:600;color:var(--teal-d)">₱${phpTotal}</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--teal-d);opacity:0.8">Rate as of ${rateDate} &nbsp;·&nbsp; Invoice date: ${md.invoiceDate||'—'}</div>`;
+    }
+
+    // Initial: fetch rate for invoice date if not already stored
+    (async()=>{
+      if(!md.phpRateOnDate){
+        const rate=await fetchPhpRateForDate(md.invoiceDate||new Date().toISOString().slice(0,10));
+        md.phpRateOnDate=rate;
+        md.phpRateDate=md.invoiceDate||new Date().toISOString().slice(0,10);
+      }
+      updatePhpPanel(md);
+    })();
+
     m.appendChild(fg('Notes','text',md.notes||'','e.g. Payment due in 7 days',v=>md.notes=v));
 
-    // Email note for "sent"
     const eNote=document.createElement('div'); eNote.style.cssText='background:var(--blue-bg);border:1px solid #BFDBFE;border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--blue);margin-top:4px;';
     eNote.innerHTML=`📧 <strong>Email:</strong> Setting status to <em>Sent</em> will trigger an email notification to Margarite (email TBD). <a href="#" style="color:var(--blue)" onclick="return false">Configure email</a>`;
     m.appendChild(eNote);
