@@ -223,7 +223,7 @@ const AUTH_HASH = '2321c4635e1eb7dd4877116b80615a86951680a020cc220f39172c24109ef
 const PROFILE   = { name:'Stephen Reyes', email:'stephen.reyes.va@gmail.com', role:'E-Commerce Virtual Assistant', rate:5 };
 const CLIENT    = { name:'Margarite', company:'All Riot Ltd.' };
 const PAYMENT   = { paypal:'stephen.reyes.va@gmail.com' };
-const GH        = { user:'stephenreyesva', repo:'timetracker', branch:'main' };
+const GH        = { user:'stephenreyesva', repo:'allriot', branch:'main' };
 
 const RATE = 5;
 const STATUSES = ['draft','sent','pending','paid','overdue'];
@@ -261,8 +261,7 @@ let dashMonth  = new Date().getMonth();
 let dashYear   = new Date().getFullYear();
 let dashPeriod = new Date().getDate() <= 15 ? 'A' : 'B';
 
-// ── Token — must be uploaded via token.txt each session ──────
-// (hardcoded fallback removed — token expired)
+// ── Token — uploaded via token.txt each session ──────────────
 function _rt(){ return ''; }
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -340,14 +339,15 @@ const GH_API = `https://api.github.com/repos/${GH.user}/${GH.repo}/contents/data
 const GH_RAW = `https://raw.githubusercontent.com/${GH.user}/${GH.repo}/${GH.branch}/data.json`;
 
 function ghHeaders(){
-  // Token must be uploaded via token.txt — no fallback
-  const tok = sessionStorage.getItem('sr_gh_tok') || '';
-  return { 'Authorization':'token '+tok, 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json' };
+  const tok = (sessionStorage.getItem('sr_gh_tok')||'').replace(/[\r\n\s]/g,'');
+  return {
+    'Authorization':'Bearer '+tok,
+    'Accept':'application/vnd.github+json',
+    'X-GitHub-Api-Version':'2022-11-28',
+    'Content-Type':'application/json'
+  };
 }
-
-function hasToken(){
-  return !!(sessionStorage.getItem('sr_gh_tok'));
-}
+function hasToken(){ return !!(sessionStorage.getItem('sr_gh_tok')||'').trim(); }
 
 // ── Load token from uploaded .txt file ───────────────────────
 function loadTokenFromFile(file){
@@ -386,25 +386,27 @@ async function loadFromGitHub(silent){
 
 // ── PUBLISH to GitHub → client (index.html) sees new records ──
 async function publishToGitHub(){
-  if(!hasToken()){
-    toast('⚠️ No token loaded. Upload your token.txt first, then publish.');
-    return false;
-  }
-  const content=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
+  if(!hasToken()){ toast('⚠️ Upload your token.txt first, then publish.'); return false; }
+  const fileContent=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
   try{
     let sha='';
     const ex=await fetch(GH_API,{headers:ghHeaders()});
-    if(ex.ok){ const j=await ex.json(); sha=j.sha; }
-    const body={message:'update tracker data',content,branch:GH.branch};
+    if(ex.status===401){ toast('❌ Token rejected — it may be expired. Generate a new one at github.com/settings/tokens with Contents write access for the allriot repo.'); return false; }
+    if(ex.status===403){ toast('❌ Forbidden — token lacks write permission for repo: allriot'); return false; }
+    if(ex.ok){ const j=await ex.json(); sha=j.sha||''; }
+    const body={message:'update tracker data',content:fileContent,branch:GH.branch};
     if(sha) body.sha=sha;
     const res=await fetch(GH_API,{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)});
     if(res.ok){
       localStorage.setItem('sr_last_sync', Date.now().toString());
-      toast('✓ Published! Client view (index.html) will refresh shortly.');
+      toast('✓ Published! Client view will update shortly.');
       return true;
     } else {
-      const e=await res.json();
-      toast('Publish error: '+(e.message||'unknown error'));
+      const e=await res.json().catch(()=>({}));
+      if(res.status===401) toast('❌ Token invalid or expired — please upload a new token.txt');
+      else if(res.status===403) toast('❌ Forbidden — token needs Contents write scope on allriot repo');
+      else if(res.status===409) toast('⚠️ Conflict — click Load from GitHub first, then publish again');
+      else toast('Publish error ('+res.status+'): '+(e.message||'unknown'));
       return false;
     }
   } catch(e){ toast('Publish failed — check your connection.'); return false; }
@@ -506,7 +508,7 @@ function buildApp(){
   const tokStatus=document.createElement('span');
   const hasSessTok=!!sessionStorage.getItem('sr_gh_tok');
   tokStatus.style.cssText=`font-size:11px;font-weight:500;${hasSessTok?'color:var(--teal)':'color:var(--hint)'}`;
-  tokStatus.textContent=hasSessTok?'🔑 Token ready':'⚠️ No token — upload token.txt to publish';
+  tokStatus.textContent=hasSessTok?'🔑 Token ready':'⚠️ No token — upload token.txt';
   tokWrap.appendChild(tokStatus);
 
   // Hidden file input
@@ -1339,13 +1341,9 @@ function buildInvoiceDetail(inv){
   return wrap;
 }
 
-// Handle "sent" status — placeholder for email sending
+// Handle "sent" status
 function handleSentStatus(inv){
-  // TODO: configure client email and CC email
-  // Client email: TBD (ask Stephen)
-  // CC email: TBD (allriotva email)
-  toast('📧 Status set to Sent — configure email in settings to auto-send.');
-  // Future: call email API here with invoice details and portal link
+  toast('📧 Invoice marked as Sent — send the PDF to client manually.');
 }
 
 // ── Modals ────────────────────────────────────────────────────
