@@ -343,7 +343,26 @@ const GH_API = `https://api.github.com/repos/${GH.user}/${GH.repo}/contents/data
 const GH_RAW = `https://raw.githubusercontent.com/${GH.user}/${GH.repo}/${GH.branch}/data.json`;
 
 function ghHeaders(){
-  return { 'Authorization':'token '+_rt(), 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json' };
+  // Prefer token uploaded via txt file (stored in sessionStorage for this session only)
+  const sessionTok = sessionStorage.getItem('sr_gh_tok');
+  const tok = sessionTok || _rt();
+  return { 'Authorization':'token '+tok, 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json' };
+}
+
+// ── Load token from uploaded .txt file ───────────────────────
+function loadTokenFromFile(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const tok = e.target.result.trim().replace(/[\r\n\s]/g,'');
+      if(!tok){ toast('⚠️ Token file appears empty.'); reject(); return; }
+      sessionStorage.setItem('sr_gh_tok', tok);
+      toast('✓ Token loaded for this session.');
+      resolve(tok);
+    };
+    reader.onerror = ()=>{ toast('Could not read token file.'); reject(); };
+    reader.readAsText(file);
+  });
 }
 
 // ── LOAD from GitHub → overwrites local data ──────────────────
@@ -477,6 +496,45 @@ function buildApp(){
 
   // Spacer
   const sp=document.createElement('div'); sp.style.flex='1'; sb.appendChild(sp);
+
+  // ── Token file upload (new computer option) ──────────────────
+  const tokWrap=document.createElement('div'); tokWrap.style.cssText='display:flex;align-items:center;gap:6px;';
+  const tokStatus=document.createElement('span');
+  const hasSessTok=!!sessionStorage.getItem('sr_gh_tok');
+  tokStatus.style.cssText=`font-size:11px;font-weight:500;${hasSessTok?'color:var(--teal)':'color:var(--hint)'}`;
+  tokStatus.textContent=hasSessTok?'🔑 Token loaded':'🔑 No token file';
+  tokWrap.appendChild(tokStatus);
+
+  // Hidden file input
+  const tokInput=document.createElement('input'); tokInput.type='file'; tokInput.accept='.txt,text/plain';
+  tokInput.style.display='none';
+  tokInput.addEventListener('change',async()=>{
+    const file=tokInput.files[0]; if(!file) return;
+    try{
+      await loadTokenFromFile(file);
+      render(); // re-render to update token status indicator
+    } catch(e){}
+    tokInput.value=''; // reset so same file can be re-uploaded
+  });
+
+  const tokBtn=document.createElement('button'); tokBtn.className='btn btn-outline btn-sm';
+  tokBtn.title='Upload your token.txt file to connect on a new computer';
+  tokBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload token.txt`;
+  tokBtn.addEventListener('click',()=>tokInput.click());
+  tokWrap.appendChild(tokInput); tokWrap.appendChild(tokBtn);
+
+  // Clear session token button (shown only when token is loaded)
+  if(hasSessTok){
+    const clrBtn=document.createElement('button'); clrBtn.className='btn btn-outline btn-sm';
+    clrBtn.title='Remove uploaded token from this session';
+    clrBtn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+    clrBtn.addEventListener('click',()=>{ sessionStorage.removeItem('sr_gh_tok'); toast('Token cleared.'); render(); });
+    tokWrap.appendChild(clrBtn);
+  }
+
+  // Divider
+  const divider=document.createElement('div'); divider.style.cssText='width:1px;height:24px;background:var(--border);flex-shrink:0;';
+  sb.appendChild(tokWrap); sb.appendChild(divider);
 
   // ↓ Load button
   const loadBtn=document.createElement('button'); loadBtn.className='btn btn-outline btn-sm';
