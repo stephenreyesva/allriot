@@ -687,7 +687,7 @@ function buildDashboard(){
   const body=document.createElement('div'); body.style.padding='0 1.25rem';
   const byDate={};
   periodEntries.forEach(e=>{ if(!byDate[e.date])byDate[e.date]=[]; byDate[e.date].push(e); });
-  const sortedDates=Object.keys(byDate).sort();
+  const sortedDates=Object.keys(byDate).sort().reverse();
   if(!sortedDates.length){
     body.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><p>No entries for ${MONTHS[dashMonth]} ${dashYear} (${period.label}).</p></div>`;
   } else {
