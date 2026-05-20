@@ -37,6 +37,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .sidebar{width:230px;background:var(--white);border-right:1px solid var(--border);padding:1.25rem 0.75rem;display:flex;flex-direction:column;position:fixed;height:100vh;overflow-y:auto;}
 .main{margin-left:230px;flex:1;padding:2rem 2.5rem;max-width:980px;}
 
+/* Invoice watermark */
+.inv-doc-body{position:relative;}
+.inv-doc-body::before{
+  content:'';
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  width:320px; height:320px;
+  background:url('img/3D_logo.png') center/contain no-repeat;
+  opacity:0.045;
+  pointer-events:none;
+  z-index:0;
+  -webkit-print-color-adjust:exact;
+  print-color-adjust:exact;
+}
+.inv-doc-body>*{position:relative;z-index:1;}
+
 /* Top header bar */
 .top-header{display:flex;align-items:center;justify-content:space-between;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem 1.25rem;margin-bottom:1.25rem;}
 .top-header-logo{display:flex;align-items:center;gap:12px;}
@@ -1435,7 +1452,7 @@ function buildInvoiceDetail(inv){
   wrap.appendChild(topBar);
 
   // Invoice document
-  const doc=document.createElement('div'); doc.className='card'; doc.style.cssText='padding:2rem;max-width:700px;';
+  const doc=document.createElement('div'); doc.className='card inv-doc-body'; doc.style.cssText='padding:2rem;max-width:700px;';
 
   // Invoice header
   const docHdr=document.createElement('div'); docHdr.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;';
