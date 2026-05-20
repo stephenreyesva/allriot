@@ -20,9 +20,9 @@
       "id": "mpdp98zes4qs",
       "date": "2026-05-06",
       "timeIn": "18:00",
-      "timeOut": "19:15",
+      "timeOut": "19:18",
       "description": "Day 2, Training, Order processing incl. spark order, poster order processing via Gelato",
-      "hours": "1.25"
+      "hours": "1.30"
     },
     {
       "id": "mpdpc5396880",
@@ -43,31 +43,19 @@
     {
       "id": "mpdpo6celiu2",
       "date": "2026-05-11",
-      "timeIn": "18:05",
+      "timeIn": "18:04",
       "timeOut": "18:20",
       "description": "Day 1, Hands on training (Sudden power outage)",
-      "hours": "0.25"
+      "hours": "0.27"
     },
     {
       "id": "mpdpouzteai5",
       "date": "2026-05-12",
-      "timeIn": "15:55",
+      "timeIn": "15:56",
       "timeOut": "17:15",
       "description": "Day 1, Hands on training ",
-      "hours": "1.33"
+      "hours": "1.32"
     }
   ],
-  "invoices": [
-    {
-      "id": "mpdkbkjeqxv1",
-      "number": "INV-001",
-      "label": "May 1–15, 2026",
-      "hours": 1,
-      "subtotal": 5,
-      "paypalFee": 0.72,
-      "status": "draft",
-      "notes": "",
-      "total": 5.72
-    }
-  ]
+  "invoices": []
 }
