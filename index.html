@@ -391,32 +391,51 @@ function printTimesheet(dateStr){
   printWithName(label+'-'+cs);
 }
 
-// ── Data — fetched live from GitHub Contents API (no CDN cache) ─
+// ── Data — fetched live from GitHub (read-only client view) ────
 const GH_API = 'https://api.github.com/repos/stephenreyesva/timetracker/contents/data.json';
+const GH_RAW = 'https://raw.githubusercontent.com/stephenreyesva/timetracker/main/data.json';
 let dataLoaded = false;
 let loadError  = false;
 
+function applyData(json){
+  data = json;
+  if(!data.comments) data.comments = {};
+  if(!data.entries)  data.entries  = [];
+  if(!data.invoices) data.invoices = [];
+  mergeLocalComments();
+  dataLoaded = true;
+  loadError  = false;
+}
+
 async function loadData(){
+  // ── Try 1: GitHub Contents API (no CDN cache, near-instant after publish) ──
   try{
-    // GitHub Contents API bypasses the CDN cache — data appears immediately after admin publishes
     const res = await fetch(GH_API, {
-      headers: { 'Accept': 'application/vnd.github.v3+json' },
-      cache: 'no-store'
+      headers:{ 'Accept':'application/vnd.github.v3+json' },
+      cache:'no-store'
     });
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const json = await res.json();
-    // File content is base64-encoded in the API response
-    const decoded = decodeURIComponent(escape(atob(json.content.replace(/\n/g,''))));
-    data = JSON.parse(decoded);
-    if(!data.comments) data.comments = {};
-    if(!data.entries)  data.entries  = [];
-    if(!data.invoices) data.invoices = [];
-    mergeLocalComments(); // restore Margarita's locally saved notes
-    dataLoaded = true;
-    loadError  = false;
+    if(res.ok){
+      const json = await res.json();
+      // Decode base64 — use TextDecoder for reliable UTF-8 support
+      const b64   = json.content.replace(/\s/g,'');
+      const bytes = Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
+      const text  = new TextDecoder('utf-8').decode(bytes);
+      applyData(JSON.parse(text));
+      return; // success — done
+    }
+    // Non-OK (e.g. 403 rate-limit) — fall through to raw URL
+  } catch(e){
+    console.warn('API fetch failed, trying raw URL:', e);
+  }
+
+  // ── Try 2: raw CDN fallback (may be up to ~5 min stale, but always works) ──
+  try{
+    const res2 = await fetch(GH_RAW + '?t=' + Date.now());
+    if(!res2.ok) throw new Error('HTTP '+res2.status);
+    applyData(await res2.json());
   } catch(e){
     loadError = true;
-    console.warn('Could not fetch data.json:', e);
+    console.warn('Both fetch methods failed:', e);
   }
 }
 
