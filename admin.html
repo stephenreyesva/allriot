@@ -37,11 +37,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .sidebar{width:230px;background:var(--white);border-right:1px solid var(--border);padding:1.25rem 0.75rem;display:flex;flex-direction:column;position:fixed;height:100vh;overflow-y:auto;}
 .main{margin-left:230px;flex:1;padding:2rem 2.5rem;max-width:980px;}
 
-/* Sidebar */
-.logo{padding:0 0.5rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:1rem;}
-.logo-name{font-size:14px;font-weight:600;}
-.logo-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--teal);margin-right:6px;vertical-align:middle;}
-.logo-email{font-size:11px;color:var(--muted);margin-top:2px;}
+/* Top header bar */
+.top-header{display:flex;align-items:center;justify-content:space-between;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem 1.25rem;margin-bottom:1.25rem;}
+.top-header-logo{display:flex;align-items:center;gap:12px;}
+.top-header-logo-img{width:44px;height:44px;object-fit:contain;border-radius:8px;}
+.top-header-name{font-size:15px;font-weight:600;line-height:1.2;}
+.top-header-role{font-size:11px;color:var(--muted);margin-top:2px;}
+.top-header-right{display:flex;align-items:center;gap:8px;}
+
+/* Logo */
+.logo{padding:0 0.5rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:1rem;display:flex;align-items:center;gap:10px;}
+.logo-img{width:38px;height:38px;object-fit:contain;border-radius:6px;flex-shrink:0;}
+.logo-name{font-size:13px;font-weight:600;line-height:1.2;}
+.logo-email{font-size:11px;color:var(--muted);margin-top:1px;}
+.login-logo img{width:80px;height:80px;object-fit:contain;display:block;margin:0 auto 12px;}
 .nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius-sm);font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:1px;transition:all 0.12s;border:none;background:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif;}
 .nav-item:hover{background:var(--bg);color:var(--text);}
 .nav-item.active{background:var(--teal-bg);color:var(--teal);font-weight:500;}
@@ -506,6 +515,7 @@ function buildLogin(){
   const card=document.createElement('div'); card.className='login-card';
   card.innerHTML=`
     <div class="login-logo">
+      <img src="img/3D_logo.png" alt="Stephen Reyes VA Logo">
       <div class="login-logo-name"><span class="login-logo-dot"></span>Stephen Reyes</div>
       <div class="login-logo-role">E-Commerce Virtual Assistant</div>
       <div class="admin-badge">Admin Access</div>
@@ -532,6 +542,21 @@ function buildApp(){
   const app=document.createElement('div'); app.className='app';
   app.appendChild(buildSidebar());
   const main=document.createElement('div'); main.className='main';
+
+  // ── Top header bar with logo ──────────────────────────────────
+  const topHdr=document.createElement('div'); topHdr.className='top-header no-print';
+  topHdr.innerHTML=`
+    <div class="top-header-logo">
+      <img src="img/3D_logo.png" alt="Stephen Reyes VA" class="top-header-logo-img">
+      <div>
+        <div class="top-header-name">Stephen Reyes</div>
+        <div class="top-header-role">E-Commerce Virtual Assistant · All Riot Ltd.</div>
+      </div>
+    </div>
+    <div class="top-header-right">
+      <span class="admin-badge" style="font-size:10px">Admin</span>
+    </div>`;
+  main.appendChild(topHdr);
 
   // Admin notice bar
   const ab=document.createElement('div'); ab.className='admin-bar no-print';
@@ -652,7 +677,12 @@ function buildApp(){
 function buildSidebar(){
   const sb=document.createElement('div'); sb.className='sidebar';
   const logo=document.createElement('div'); logo.className='logo';
-  logo.innerHTML=`<div class="logo-name"><span class="logo-dot"></span>Stephen Reyes</div><div class="logo-email">${PROFILE.email}</div>`;
+  logo.innerHTML=`
+    <img src="img/3D_logo.png" alt="Logo" class="logo-img">
+    <div>
+      <div class="logo-name">Stephen Reyes</div>
+      <div class="logo-email">${PROFILE.email}</div>
+    </div>`;
   sb.appendChild(logo);
   [
     {id:'dashboard',label:'Dashboard',icon:'<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'},
