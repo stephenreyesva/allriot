@@ -261,7 +261,7 @@ let dashMonth  = new Date().getMonth();
 let dashYear   = new Date().getFullYear();
 let dashPeriod = new Date().getDate() <= 15 ? 'A' : 'B';
 
-// ── Token — uploaded via token.txt each session ──────────────
+// Token uploaded via token.txt each session
 function _rt(){ return ''; }
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -339,13 +339,8 @@ const GH_API = `https://api.github.com/repos/${GH.user}/${GH.repo}/contents/data
 const GH_RAW = `https://raw.githubusercontent.com/${GH.user}/${GH.repo}/${GH.branch}/data.json`;
 
 function ghHeaders(){
-  const tok = (sessionStorage.getItem('sr_gh_tok')||'').replace(/[\r\n\s]/g,'');
-  return {
-    'Authorization':'Bearer '+tok,
-    'Accept':'application/vnd.github+json',
-    'X-GitHub-Api-Version':'2022-11-28',
-    'Content-Type':'application/json'
-  };
+  const tok=(sessionStorage.getItem('sr_gh_tok')||'').replace(/[\r\n\s]/g,'');
+  return {'Authorization':'Bearer '+tok,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'};
 }
 function hasToken(){ return !!(sessionStorage.getItem('sr_gh_tok')||'').trim(); }
 
@@ -391,7 +386,7 @@ async function publishToGitHub(){
   try{
     let sha='';
     const ex=await fetch(GH_API,{headers:ghHeaders()});
-    if(ex.status===401){ toast('❌ Token rejected — it may be expired. Generate a new one at github.com/settings/tokens with Contents write access for the allriot repo.'); return false; }
+    if(ex.status===401){ toast('❌ Token rejected — generate a new token at github.com/settings/tokens with Contents write access for repo: allriot'); return false; }
     if(ex.status===403){ toast('❌ Forbidden — token lacks write permission for repo: allriot'); return false; }
     if(ex.ok){ const j=await ex.json(); sha=j.sha||''; }
     const body={message:'update tracker data',content:fileContent,branch:GH.branch};
@@ -403,7 +398,7 @@ async function publishToGitHub(){
       return true;
     } else {
       const e=await res.json().catch(()=>({}));
-      if(res.status===401) toast('❌ Token invalid or expired — please upload a new token.txt');
+      if(res.status===401) toast('❌ Token invalid or expired — upload a new token.txt');
       else if(res.status===403) toast('❌ Forbidden — token needs Contents write scope on allriot repo');
       else if(res.status===409) toast('⚠️ Conflict — click Load from GitHub first, then publish again');
       else toast('Publish error ('+res.status+'): '+(e.message||'unknown'));
@@ -686,6 +681,122 @@ function buildDashboard(){
       <div class="stat-sub">${unpaidCount===0?'All invoices paid ✓':fmt(unpaidAmt)+' outstanding'}</div>
     </div>`;
   div.appendChild(sg);
+
+  // ── Hours Chart (Monthly / Yearly) ──────────────────────────
+  (function(){
+    const chartCard=document.createElement('div'); chartCard.className='card'; chartCard.style.marginBottom='1.25rem';
+    const chartHdr=document.createElement('div'); chartHdr.className='card-header';
+    const chartView=window._dashChartView||'monthly';
+    const chartTitle=document.createElement('div'); chartTitle.className='card-title'; chartTitle.textContent='Hours Worked';
+    const chartToggle=document.createElement('div'); chartToggle.style.cssText='display:flex;gap:4px;';
+    ['monthly','yearly'].forEach(function(v){
+      const b=document.createElement('button');
+      b.textContent=v==='monthly'?'Monthly':'Yearly';
+      b.style.cssText='font-size:11px;padding:3px 10px;border-radius:100px;border:1px solid #E5E7EB;cursor:pointer;font-family:inherit;transition:all .15s;background:'+(chartView===v?'#0D9488':'transparent')+';color:'+(chartView===v?'#fff':'#6B7280')+';';
+      b.addEventListener('click',function(){ window._dashChartView=v; render(); });
+      chartToggle.appendChild(b);
+    });
+    chartHdr.appendChild(chartTitle); chartHdr.appendChild(chartToggle);
+    chartCard.appendChild(chartHdr);
+
+    // Build chart data
+    const chartLabels=[], chartValues=[], chartColors=[];
+    const paidDC=getPaidDates();
+    let chartSubLabel='';
+
+    if(chartView==='monthly'){
+      const dim=new Date(dashYear,dashMonth+1,0).getDate();
+      for(let d=1;d<=dim;d++){
+        const ds=dashYear+'-'+String(dashMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+        const h=totalHours(data.entries.filter(function(e){ return e.date===ds; }));
+        chartLabels.push(d); chartValues.push(h);
+        chartColors.push(paidDC.has(ds)?'#F59E0B':h>0?'#0D9488':'#E5E7EB');
+      }
+      chartSubLabel=MONTHS[dashMonth]+' '+dashYear;
+    } else {
+      MONTHS.forEach(function(mn,mi){
+        const h=totalHours(getMonthEntries(mi,dashYear));
+        chartLabels.push(mn.slice(0,3)); chartValues.push(h);
+        chartColors.push(h>0?'#0D9488':'#E5E7EB');
+      });
+      chartSubLabel='Full Year '+dashYear;
+    }
+
+    const canvasWrap=document.createElement('div'); canvasWrap.style.cssText='padding:16px 20px 4px;position:relative;';
+    const canvas=document.createElement('canvas');
+    canvas.height=window.innerWidth<600?160:200;
+    canvas.style.cssText='width:100%;display:block;cursor:crosshair;';
+    const tooltip=document.createElement('div');
+    tooltip.style.cssText='position:absolute;background:rgba(17,24,39,0.88);color:#fff;font-size:11px;padding:5px 9px;border-radius:6px;pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .12s;z-index:10;transform:translateX(-50%);';
+    canvasWrap.appendChild(canvas); canvasWrap.appendChild(tooltip);
+    chartCard.appendChild(canvasWrap);
+
+    const chartFoot=document.createElement('div'); chartFoot.style.cssText='padding:4px 20px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;';
+    chartFoot.innerHTML='<span style="font-size:11px;color:#6B7280;">'+chartSubLabel+'</span><span style="display:flex;gap:12px;font-size:10px;color:#6B7280;"><span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#0D9488;margin-right:4px;vertical-align:middle;"></span>Hours logged</span><span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#F59E0B;margin-right:4px;vertical-align:middle;"></span>Paid period</span></span>';
+    chartCard.appendChild(chartFoot);
+    div.appendChild(chartCard);
+
+    requestAnimationFrame(function(){
+      const W=canvas.offsetWidth||320; const H=canvas.height;
+      canvas.width=W;
+      const ctx=canvas.getContext('2d');
+      const n=chartValues.length;
+      const pL=34,pR=10,pT=14,pB=26;
+      const cW=W-pL-pR; const cH=H-pT-pB;
+      const maxV=Math.max.apply(null,chartValues.concat([0.5]));
+      const gap=chartView==='monthly'?2:6;
+      const bW=(cW/n)-gap;
+
+      // Grid lines
+      for(let i=0;i<=4;i++){
+        const y=pT+cH-(cH/4)*i;
+        ctx.strokeStyle='rgba(0,0,0,0.07)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(pL,y); ctx.lineTo(W-pR,y); ctx.stroke();
+        ctx.fillStyle='rgba(0,0,0,0.32)'; ctx.font='9px system-ui,sans-serif'; ctx.textAlign='right';
+        ctx.fillText(((maxV/4)*i).toFixed(1)+'h',pL-4,y+3);
+      }
+
+      // Bars
+      chartValues.forEach(function(v,i){
+        const x=pL+i*(bW+gap);
+        const bH=v>0?Math.max(3,(v/maxV)*cH):2;
+        const y=pT+cH-bH;
+        const r=Math.min(3,bW/2,bH);
+        ctx.beginPath();
+        ctx.moveTo(x+r,y); ctx.lineTo(x+bW-r,y);
+        ctx.quadraticCurveTo(x+bW,y,x+bW,y+r);
+        ctx.lineTo(x+bW,pT+cH); ctx.lineTo(x,pT+cH); ctx.lineTo(x,y+r);
+        ctx.quadraticCurveTo(x,y,x+r,y);
+        ctx.closePath(); ctx.fillStyle=chartColors[i]; ctx.fill();
+
+        // X labels
+        const showLbl=chartView==='yearly'||(n<=15)||(i===0)||((i+1)%5===0);
+        if(showLbl){
+          ctx.fillStyle='rgba(0,0,0,0.38)'; ctx.font='9px system-ui,sans-serif'; ctx.textAlign='center';
+          ctx.fillText(chartLabels[i],x+bW/2,pT+cH+14);
+        }
+      });
+
+      function showTip(mx){
+        var found=false;
+        chartValues.forEach(function(v,i){
+          const x=pL+i*(bW+gap);
+          if(mx>=x&&mx<=x+bW){
+            const lbl=chartView==='monthly'?MONTHS[dashMonth].slice(0,3)+' '+chartLabels[i]:chartLabels[i];
+            tooltip.textContent=lbl+': '+v.toFixed(1)+'h'+(v>0?' · '+fmt(v*RATE):'');
+            const cx=x+bW/2;
+            tooltip.style.left=(cx/W*100)+'%';
+            const bH=v>0?Math.max(3,(v/maxV)*cH):2;
+            tooltip.style.top=Math.max(4,pT+cH-bH-36)+'px';
+            tooltip.style.opacity='1'; found=true;
+          }
+        });
+        if(!found) tooltip.style.opacity='0';
+      }
+      canvas.onmousemove=function(e){ const r=canvas.getBoundingClientRect(); showTip((e.clientX-r.left)*(W/r.width)); };
+      canvas.onmouseleave=function(){ tooltip.style.opacity='0'; };
+    });
+  })();
 
   // ── Period summary card (same structure as index.html + amounts) ──
   const card=document.createElement('div'); card.className='card'; card.style.marginBottom='1.25rem';
@@ -1341,9 +1452,13 @@ function buildInvoiceDetail(inv){
   return wrap;
 }
 
-// Handle "sent" status
+// Handle "sent" status — placeholder for email sending
 function handleSentStatus(inv){
-  toast('📧 Invoice marked as Sent — send the PDF to client manually.');
+  // TODO: configure client email and CC email
+  // Client email: TBD (ask Stephen)
+  // CC email: TBD (allriotva email)
+  toast('📧 Status set to Sent — configure email in settings to auto-send.');
+  // Future: call email API here with invoice details and portal link
 }
 
 // ── Modals ────────────────────────────────────────────────────
