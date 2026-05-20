@@ -1,4 +1,13 @@
 {
-  "entries": [],
+  "entries": [
+    {
+      "id": "mpdg4s58qs68",
+      "date": "2026-05-04",
+      "timeIn": "21:30",
+      "timeOut": "22:40",
+      "description": "Day 1, Onboarding and training (order processing and customer support)",
+      "hours": "1.17"
+    }
+  ],
   "invoices": []
 }
