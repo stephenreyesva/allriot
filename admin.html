@@ -1184,22 +1184,18 @@ function buildInvoices(){
 
       const isPaidInv = inv.status==='paid';
 
-      // Status: paid = static badge only; others = dropdown
+      // Status: always a dropdown — no lock
       const sc=document.createElement('td');
-      if(isPaidInv){
-        sc.innerHTML=`<span class="badge badge-paid">Paid</span>`;
-      } else {
-        const sel=document.createElement('select'); sel.className='status-sel '+(inv.status||'draft');
-        STATUSES.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=STATUS_LABELS[s]; if(s===inv.status)o.selected=true; sel.appendChild(o); });
-        sel.addEventListener('change',e=>{
-          const newStatus=e.target.value;
-          inv.status=newStatus; sel.className='status-sel '+newStatus; save();
-          toast('Status → '+STATUS_LABELS[newStatus]);
-          if(newStatus==='sent') handleSentStatus(inv);
-          render();
-        });
-        sc.appendChild(sel);
-      }
+      const sel=document.createElement('select'); sel.className='status-sel '+(inv.status||'draft');
+      STATUSES.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=STATUS_LABELS[s]; if(s===inv.status)o.selected=true; sel.appendChild(o); });
+      sel.addEventListener('change',e=>{
+        const newStatus=e.target.value;
+        inv.status=newStatus; sel.className='status-sel '+newStatus; save();
+        toast('Status → '+STATUS_LABELS[newStatus]);
+        if(newStatus==='sent') handleSentStatus(inv);
+        render();
+      });
+      sc.appendChild(sel);
 
       // Notes: always editable (even for paid)
       const nc=document.createElement('td');
