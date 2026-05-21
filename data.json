@@ -79,6 +79,14 @@
       "timeOut": "10:46",
       "description": "sharing and setting up new google drive sharing for all orders.",
       "hours": "0.18"
+    },
+    {
+      "id": "mpfr6lg622pz",
+      "date": "2026-05-21",
+      "timeIn": "00:20",
+      "timeOut": "01:15",
+      "description": "EU Shipping Label preparation and Costumer support",
+      "hours": "0.92"
     }
   ],
   "invoices": [
