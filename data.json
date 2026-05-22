@@ -95,6 +95,14 @@
       "timeOut": "17:05",
       "description": "Order processing for EU and US",
       "hours": "0.58"
+    },
+    {
+      "id": "mph3kqpywwtr",
+      "date": "2026-05-22",
+      "timeIn": "00:30",
+      "timeOut": "01:20",
+      "description": "Customer support",
+      "hours": "0.83"
     }
   ],
   "invoices": [
