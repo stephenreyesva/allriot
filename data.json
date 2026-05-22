@@ -87,6 +87,14 @@
       "timeOut": "01:15",
       "description": "EU Shipping Label preparation and Costumer support",
       "hours": "0.92"
+    },
+    {
+      "id": "mpgowflyzc6r",
+      "date": "2026-05-22",
+      "timeIn": "16:30",
+      "timeOut": "17:05",
+      "description": "Order processing for EU and US",
+      "hours": "0.58"
     }
   ],
   "invoices": [
