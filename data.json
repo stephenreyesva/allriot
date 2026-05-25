@@ -103,6 +103,22 @@
       "timeOut": "01:15",
       "description": "Customer support",
       "hours": "0.75"
+    },
+    {
+      "id": "mpkx6e4d2ji6",
+      "date": "2026-05-25",
+      "timeIn": "16:00",
+      "timeOut": "16:25",
+      "description": "Order Processing",
+      "hours": "0.42"
+    },
+    {
+      "id": "mpldt4zwjobf",
+      "date": "2026-05-25",
+      "timeIn": "23:40",
+      "timeOut": "23:55",
+      "description": "Customer support",
+      "hours": "0.25"
     }
   ],
   "invoices": [
