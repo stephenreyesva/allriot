@@ -119,6 +119,14 @@
       "timeOut": "23:55",
       "description": "Customer support",
       "hours": "0.25"
+    },
+    {
+      "id": "mpm4qinq3gzu",
+      "date": "2026-05-23",
+      "timeIn": "17:10",
+      "timeOut": "17:25",
+      "description": "Customer support",
+      "hours": "0.25"
     }
   ],
   "invoices": [
