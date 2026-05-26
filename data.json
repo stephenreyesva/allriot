@@ -127,6 +127,14 @@
       "timeOut": "17:25",
       "description": "Customer support",
       "hours": "0.25"
+    },
+    {
+      "id": "mpmmtad9fab3",
+      "date": "2026-05-26",
+      "timeIn": "20:45",
+      "timeOut": "20:50",
+      "description": "Customer support",
+      "hours": "0.08"
     }
   ],
   "invoices": [
