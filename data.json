@@ -135,6 +135,14 @@
       "timeOut": "20:50",
       "description": "Customer support",
       "hours": "0.08"
+    },
+    {
+      "id": "mpns7j7g0v9c",
+      "date": "2026-05-27",
+      "timeIn": "16:00",
+      "timeOut": "16:45",
+      "description": "Costumer order (With Mystery Pack) and replacement for damage item.",
+      "hours": "0.75"
     }
   ],
   "invoices": [
