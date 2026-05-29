@@ -151,6 +151,22 @@
       "timeOut": "17:25",
       "description": "Customer support",
       "hours": "0.50"
+    },
+    {
+      "id": "mpqmm5miwpry",
+      "date": "2026-05-28",
+      "timeIn": "16:10",
+      "timeOut": "16:35",
+      "description": "Customer support",
+      "hours": "0.42"
+    },
+    {
+      "id": "mpqndhb9zpd8",
+      "date": "2026-05-29",
+      "timeIn": "16:15",
+      "timeOut": "17:50",
+      "description": "Order Processing and Customer support with posters",
+      "hours": "1.58"
     }
   ],
   "invoices": [
