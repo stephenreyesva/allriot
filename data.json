@@ -186,6 +186,20 @@
       "phpRateOnDate": 59.080799999999996,
       "phpRateDate": "2026-05-19",
       "invoiceDate": "2026-05-19"
+    },
+    {
+      "id": "mpvh7tpehuf8",
+      "number": "INV-002",
+      "label": "May 16–31, 2026",
+      "invoiceDate": "2026-06-01",
+      "hours": 9.38,
+      "subtotal": 46.900000000000006,
+      "paypalFee": 2.6,
+      "phpRateOnDate": 58.84179999999999,
+      "phpRateDate": "2026-06-01",
+      "status": "draft",
+      "notes": "",
+      "total": 49.50000000000001
     }
   ]
 }
