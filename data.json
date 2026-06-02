@@ -191,6 +191,14 @@
       "timeOut": "01:25",
       "description": "Customer Support",
       "hours": "1.33"
+    },
+    {
+      "id": "mpwwdzs1wxja",
+      "date": "2026-06-03",
+      "timeIn": "01:10",
+      "timeOut": "01:50",
+      "description": "Customer support",
+      "hours": "0.67"
     }
   ],
   "invoices": [
@@ -221,7 +229,7 @@
       "paypalFee": 2.6,
       "phpRateOnDate": 58.84179999999999,
       "phpRateDate": "2026-06-01",
-      "status": "draft",
+      "status": "sent",
       "notes": "",
       "total": 49.50000000000001
     }
