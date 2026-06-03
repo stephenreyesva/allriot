@@ -199,6 +199,14 @@
       "timeOut": "01:50",
       "description": "Customer support",
       "hours": "0.67"
+    },
+    {
+      "id": "mpxtbif5lp0c",
+      "date": "2026-06-03",
+      "timeIn": "16:35",
+      "timeOut": "17:00",
+      "description": "Order Processing",
+      "hours": "0.42"
     }
   ],
   "invoices": [
