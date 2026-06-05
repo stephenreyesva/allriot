@@ -223,6 +223,14 @@
       "timeOut": "00:05",
       "description": "Customer Support",
       "hours": "0.08"
+    },
+    {
+      "id": "mq0owck6g6ah",
+      "date": "2026-06-05",
+      "timeIn": "16:55",
+      "timeOut": "17:20",
+      "description": "Order Processing",
+      "hours": "0.42"
     }
   ],
   "invoices": [
