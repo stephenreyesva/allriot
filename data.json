@@ -239,6 +239,22 @@
       "timeOut": "02:30",
       "description": "Updating freshdesk (Customer Support)",
       "hours": "0.50"
+    },
+    {
+      "id": "mq4kj6bg7m3q",
+      "date": "2026-06-08",
+      "timeIn": "10:00",
+      "timeOut": "10:30",
+      "description": "EU Shipping label",
+      "hours": "0.50"
+    },
+    {
+      "id": "mq50u986hatr",
+      "date": "2026-06-08",
+      "timeIn": "17:40",
+      "timeOut": "18:15",
+      "description": "Order processing with posters",
+      "hours": "0.58"
     }
   ],
   "invoices": [
