@@ -255,6 +255,14 @@
       "timeOut": "18:15",
       "description": "Order processing with posters",
       "hours": "0.58"
+    },
+    {
+      "id": "mq6p2wpx94xp",
+      "date": "2026-06-09",
+      "timeIn": "21:45",
+      "timeOut": "22:15",
+      "description": "Customer support",
+      "hours": "0.50"
     }
   ],
   "invoices": [
