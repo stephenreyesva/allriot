@@ -260,9 +260,17 @@
       "id": "mq6p2wpx94xp",
       "date": "2026-06-09",
       "timeIn": "21:45",
-      "timeOut": "22:25",
+      "timeOut": "22:20",
       "description": "Customer support",
-      "hours": "0.67"
+      "hours": "0.58"
+    },
+    {
+      "id": "mq6tr3op25z8",
+      "date": "2026-06-09",
+      "timeIn": "23:30",
+      "timeOut": "23:55",
+      "description": "Customer Support",
+      "hours": "0.42"
     }
   ],
   "invoices": [
