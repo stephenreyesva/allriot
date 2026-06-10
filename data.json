@@ -271,6 +271,14 @@
       "timeOut": "23:55",
       "description": "Customer Support",
       "hours": "0.42"
+    },
+    {
+      "id": "mq7tvc3y8so9",
+      "date": "2026-06-10",
+      "timeIn": "16:45",
+      "timeOut": "17:35",
+      "description": "Order Processing (with EU Shipping Label and Posters)",
+      "hours": "0.83"
     }
   ],
   "invoices": [
