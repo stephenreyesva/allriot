@@ -284,9 +284,17 @@
       "id": "mq99ea03iqok",
       "date": "2026-06-11",
       "timeIn": "16:50",
-      "timeOut": "17:20",
+      "timeOut": "17:25",
       "description": "Customer Support",
-      "hours": "0.50"
+      "hours": "0.58"
+    },
+    {
+      "id": "mq9pxh53ps94",
+      "date": "2026-06-12",
+      "timeIn": "00:30",
+      "timeOut": "01:30",
+      "description": "Customer support",
+      "hours": "1.00"
     }
   ],
   "invoices": [
