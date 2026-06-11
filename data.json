@@ -279,6 +279,14 @@
       "timeOut": "17:35",
       "description": "Order Processing (with EU Shipping Label and Posters)",
       "hours": "0.83"
+    },
+    {
+      "id": "mq99ea03iqok",
+      "date": "2026-06-11",
+      "timeIn": "16:50",
+      "timeOut": "17:20",
+      "description": "Customer Support",
+      "hours": "0.50"
     }
   ],
   "invoices": [
