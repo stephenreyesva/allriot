@@ -295,6 +295,14 @@
       "timeOut": "01:30",
       "description": "Customer support",
       "hours": "1.00"
+    },
+    {
+      "id": "mqap71y748kp",
+      "date": "2026-06-12",
+      "timeIn": "17:00",
+      "timeOut": "17:10",
+      "description": "Order Processing",
+      "hours": "0.17"
     }
   ],
   "invoices": [
