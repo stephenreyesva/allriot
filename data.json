@@ -300,9 +300,9 @@
       "id": "mqap71y748kp",
       "date": "2026-06-12",
       "timeIn": "17:00",
-      "timeOut": "17:10",
+      "timeOut": "17:15",
       "description": "Order Processing",
-      "hours": "0.17"
+      "hours": "0.25"
     }
   ],
   "invoices": [
