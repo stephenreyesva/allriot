@@ -303,6 +303,14 @@
       "timeOut": "17:15",
       "description": "Order Processing",
       "hours": "0.25"
+    },
+    {
+      "id": "mqcncy6l524z",
+      "date": "2026-06-14",
+      "timeIn": "01:45",
+      "timeOut": "02:25",
+      "description": "customer support",
+      "hours": "0.67"
     }
   ],
   "invoices": [
