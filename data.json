@@ -311,6 +311,14 @@
       "timeOut": "02:25",
       "description": "customer support",
       "hours": "0.67"
+    },
+    {
+      "id": "mqeyq8sdr33t",
+      "date": "2026-06-15",
+      "timeIn": "16:40",
+      "timeOut": "17:15",
+      "description": "Order Processing",
+      "hours": "0.58"
     }
   ],
   "invoices": [
