@@ -368,6 +368,20 @@
       "status": "paid",
       "notes": "9WX59699XH544781J",
       "total": 49.50000000000001
+    },
+    {
+      "id": "mqhuypez33kc",
+      "number": "INV-003",
+      "label": "June 1–15, 2026",
+      "invoiceDate": "2026-06-17",
+      "hours": 10.91,
+      "subtotal": 54.55,
+      "paypalFee": 2.94,
+      "phpRateOnDate": 57.63724,
+      "phpRateDate": "2026-06-17",
+      "status": "draft",
+      "notes": "",
+      "total": 57.489999999999995
     }
   ]
 }
