@@ -327,6 +327,14 @@
       "timeOut": "23:45",
       "description": "Customer Support",
       "hours": "0.42"
+    },
+    {
+      "id": "mqht15cvegrn",
+      "date": "2026-06-17",
+      "timeIn": "16:20",
+      "timeOut": "17:10",
+      "description": "Order Processing",
+      "hours": "0.83"
     }
   ],
   "invoices": [
