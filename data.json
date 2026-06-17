@@ -335,6 +335,14 @@
       "timeOut": "17:10",
       "description": "Order Processing",
       "hours": "0.83"
+    },
+    {
+      "id": "mqigmv9f58bz",
+      "date": "2026-06-18",
+      "timeIn": "03:20",
+      "timeOut": "03:40",
+      "description": "Customer support",
+      "hours": "0.33"
     }
   ],
   "invoices": [
