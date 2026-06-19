@@ -367,6 +367,22 @@
       "timeOut": "18:20",
       "description": "EU Label",
       "hours": "0.33"
+    },
+    {
+      "id": "mql3niv28w60",
+      "date": "2026-06-19",
+      "timeIn": "23:40",
+      "timeOut": "23:55",
+      "description": "EU Label",
+      "hours": "0.25"
+    },
+    {
+      "id": "mql60ctpqfyy",
+      "date": "2026-06-20",
+      "timeIn": "00:00",
+      "timeOut": "00:55",
+      "description": "Trying to troubleshoot with Samos for EU Shipping label",
+      "hours": "0.92"
     }
   ],
   "invoices": [
