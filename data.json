@@ -353,12 +353,20 @@
       "hours": "0.25"
     },
     {
-      "id": "mqkoef7rqwdy",
+      "id": "mqkraxvj2npw",
       "date": "2026-06-19",
       "timeIn": "16:35",
       "timeOut": "17:15",
       "description": "Order Processing",
       "hours": "0.67"
+    },
+    {
+      "id": "mqkrbkghszkh",
+      "date": "2026-06-19",
+      "timeIn": "18:00",
+      "timeOut": "18:20",
+      "description": "EU Label",
+      "hours": "0.33"
     }
   ],
   "invoices": [
