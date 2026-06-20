@@ -383,6 +383,14 @@
       "timeOut": "00:55",
       "description": "Trying to troubleshoot with Samos for EU Shipping label",
       "hours": "0.92"
+    },
+    {
+      "id": "mqmbp41v0159",
+      "date": "2026-06-20",
+      "timeIn": "20:15",
+      "timeOut": "20:25",
+      "description": "EU Shipping label (Samos Technical issue)",
+      "hours": "0.17"
     }
   ],
   "invoices": [
