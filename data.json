@@ -396,9 +396,17 @@
       "id": "mqpj9mhd34rg",
       "date": "2026-06-22",
       "timeIn": "16:00",
-      "timeOut": "16:25",
+      "timeOut": "16:40",
       "description": "Order processing",
-      "hours": "0.42"
+      "hours": "0.67"
+    },
+    {
+      "id": "mqple84purb6",
+      "date": "2026-06-23",
+      "timeIn": "02:20",
+      "timeOut": "03:15",
+      "description": "Customer Support and EU Shipping Label",
+      "hours": "0.92"
     }
   ],
   "invoices": [
