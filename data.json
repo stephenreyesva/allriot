@@ -391,6 +391,14 @@
       "timeOut": "20:25",
       "description": "EU Shipping label (Samos Technical issue)",
       "hours": "0.17"
+    },
+    {
+      "id": "mqpj9mhd34rg",
+      "date": "2026-06-22",
+      "timeIn": "16:00",
+      "timeOut": "16:25",
+      "description": "Order processing",
+      "hours": "0.42"
     }
   ],
   "invoices": [
