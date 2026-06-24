@@ -407,6 +407,14 @@
       "timeOut": "03:15",
       "description": "Customer Support and EU Shipping Label",
       "hours": "0.83"
+    },
+    {
+      "id": "mqrtuwek8ds8",
+      "date": "2026-06-24",
+      "timeIn": "16:40",
+      "timeOut": "17:45",
+      "description": "Order Processing with Spark and posters",
+      "hours": "1.08"
     }
   ],
   "invoices": [
