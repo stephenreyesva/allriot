@@ -420,9 +420,25 @@
       "id": "mqtn7ea4hlto",
       "date": "2026-06-25",
       "timeIn": "23:10",
-      "timeOut": "23:20",
+      "timeOut": "23:40",
       "description": "Customer support",
-      "hours": "0.17"
+      "hours": "0.50"
+    },
+    {
+      "id": "mqton6oi9wnn",
+      "date": "2026-06-25",
+      "timeIn": "23:50",
+      "timeOut": "23:55",
+      "description": "Setting up fynedesk",
+      "hours": "0.08"
+    },
+    {
+      "id": "mqtq9et38jgf",
+      "date": "2026-06-26",
+      "timeIn": "00:00",
+      "timeOut": "00:40",
+      "description": "Customer support and Setting up Fyndesk",
+      "hours": "0.67"
     }
   ],
   "invoices": [
