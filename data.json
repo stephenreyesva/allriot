@@ -439,6 +439,14 @@
       "timeOut": "00:40",
       "description": "Customer support and Setting up Fyndesk",
       "hours": "0.67"
+    },
+    {
+      "id": "mqupe0m2s9lh",
+      "date": "2026-06-26",
+      "timeIn": "17:00",
+      "timeOut": "17:20",
+      "description": "Order Processing",
+      "hours": "0.33"
     }
   ],
   "invoices": [
