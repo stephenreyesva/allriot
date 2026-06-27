@@ -444,9 +444,17 @@
       "id": "mqw95ejmw5ug",
       "date": "2026-06-27",
       "timeIn": "19:00",
-      "timeOut": "19:20",
+      "timeOut": "19:15",
       "description": "Customer Support",
-      "hours": "0.33"
+      "hours": "0.25"
+    },
+    {
+      "id": "mqwa97zvo74k",
+      "date": "2026-06-27",
+      "timeIn": "19:30",
+      "timeOut": "20:20",
+      "description": "Customer support and (poster) order processing",
+      "hours": "0.83"
     }
   ],
   "invoices": [
