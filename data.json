@@ -463,6 +463,14 @@
       "timeOut": "14:25",
       "description": "customer support",
       "hours": "0.17"
+    },
+    {
+      "id": "mqyynlenzkfy",
+      "date": "2026-06-29",
+      "timeIn": "16:30",
+      "timeOut": "17:20",
+      "description": "Order processing",
+      "hours": "0.83"
     }
   ],
   "invoices": [
