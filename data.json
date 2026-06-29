@@ -455,6 +455,14 @@
       "timeOut": "20:20",
       "description": "Customer support and (poster) order processing",
       "hours": "0.83"
+    },
+    {
+      "id": "mqyrx2cw79zp",
+      "date": "2026-06-28",
+      "timeIn": "14:15",
+      "timeOut": "14:25",
+      "description": "customer support",
+      "hours": "0.17"
     }
   ],
   "invoices": [
