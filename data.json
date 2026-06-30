@@ -479,6 +479,14 @@
       "timeOut": "00:35",
       "description": "customer support",
       "hours": "0.42"
+    },
+    {
+      "id": "mr009cc2bmsx",
+      "date": "2026-06-30",
+      "timeIn": "10:05",
+      "timeOut": "10:15",
+      "description": "customer support",
+      "hours": "0.17"
     }
   ],
   "invoices": [
