@@ -487,6 +487,14 @@
       "timeOut": "10:20",
       "description": "customer support",
       "hours": "0.25"
+    },
+    {
+      "id": "mr0rzd3f8gnn",
+      "date": "2026-06-30",
+      "timeIn": "23:00",
+      "timeOut": "23:20",
+      "description": "Customer Support",
+      "hours": "0.33"
     }
   ],
   "invoices": [
