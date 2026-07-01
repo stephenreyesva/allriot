@@ -503,6 +503,14 @@
       "timeOut": "09:40",
       "description": "Customer support",
       "hours": "0.17"
+    },
+    {
+      "id": "mr1tgd0qxoi9",
+      "date": "2026-07-01",
+      "timeIn": "16:30",
+      "timeOut": "17:30",
+      "description": "Order Processing and customer support",
+      "hours": "1.00"
     }
   ],
   "invoices": [
