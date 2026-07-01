@@ -511,6 +511,14 @@
       "timeOut": "17:30",
       "description": "Order Processing and customer support",
       "hours": "1.00"
+    },
+    {
+      "id": "mr2a6vjqettz",
+      "date": "2026-07-02",
+      "timeIn": "00:15",
+      "timeOut": "00:45",
+      "description": "Customer Support",
+      "hours": "0.50"
     }
   ],
   "invoices": [
@@ -546,32 +554,18 @@
       "total": 49.50000000000001
     },
     {
-      "id": "mr1zwdgbkeeu",
+      "id": "mqhuypez33kc",
       "number": "INV-003",
       "label": "June 1–15, 2026",
-      "invoiceDate": "2026-07-01",
+      "invoiceDate": "2026-06-17",
       "hours": 10.91,
       "subtotal": 54.55,
       "paypalFee": 2.94,
-      "phpRateOnDate": 58.70795999999999,
-      "phpRateDate": "2026-07-01",
+      "phpRateOnDate": 57.63724,
+      "phpRateDate": "2026-06-17",
       "status": "paid",
       "notes": "",
       "total": 57.489999999999995
-    },
-    {
-      "id": "mr1zwn2aa6l9",
-      "number": "INV-004",
-      "label": "June 16–30, 2026",
-      "invoiceDate": "2026-07-01",
-      "hours": 11.08,
-      "subtotal": 55.4,
-      "paypalFee": 2.98,
-      "phpRateOnDate": 58.70795999999999,
-      "phpRateDate": "2026-07-01",
-      "status": "draft",
-      "notes": "",
-      "total": 58.379999999999995
     }
   ]
 }
