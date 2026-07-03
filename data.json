@@ -580,7 +580,7 @@
       "phpRateOnDate": 57.63724,
       "phpRateDate": "2026-06-17",
       "status": "paid",
-      "notes": "",
+      "notes": "7SC08118AN922961Y",
       "total": 57.489999999999995
     },
     {
@@ -593,8 +593,8 @@
       "paypalFee": 2.98,
       "phpRateOnDate": 58.70795999999999,
       "phpRateDate": "2026-07-01",
-      "status": "draft",
-      "notes": "",
+      "status": "paid",
+      "notes": "4XM62420F4210333E",
       "total": 58.379999999999995
     }
   ]
