@@ -535,6 +535,14 @@
       "timeOut": "17:30",
       "description": "Order Processing and EU Labels and customer support",
       "hours": "0.67"
+    },
+    {
+      "id": "mr4teda212z4",
+      "date": "2026-07-03",
+      "timeIn": "18:45",
+      "timeOut": "19:05",
+      "description": "Order Processing",
+      "hours": "0.33"
     }
   ],
   "invoices": [
