@@ -543,6 +543,14 @@
       "timeOut": "19:05",
       "description": "Order Processing",
       "hours": "0.33"
+    },
+    {
+      "id": "mr684v6hc9rm",
+      "date": "2026-07-04",
+      "timeIn": "18:30",
+      "timeOut": "19:20",
+      "description": "Customer Support",
+      "hours": "0.83"
     }
   ],
   "invoices": [
