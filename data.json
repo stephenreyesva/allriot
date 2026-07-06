@@ -559,6 +559,14 @@
       "timeOut": "17:05",
       "description": "order processing, EU Label and customer support",
       "hours": "0.67"
+    },
+    {
+      "id": "mr9dksm743oz",
+      "date": "2026-07-06",
+      "timeIn": "23:25",
+      "timeOut": "23:55",
+      "description": "Customer support",
+      "hours": "0.50"
     }
   ],
   "invoices": [
