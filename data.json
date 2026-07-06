@@ -551,6 +551,14 @@
       "timeOut": "19:20",
       "description": "Customer Support",
       "hours": "0.92"
+    },
+    {
+      "id": "mr8yglm02ogg",
+      "date": "2026-07-06",
+      "timeIn": "16:25",
+      "timeOut": "17:05",
+      "description": "order processing, EU Label and customer support",
+      "hours": "0.67"
     }
   ],
   "invoices": [
