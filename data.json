@@ -567,6 +567,22 @@
       "timeOut": "23:55",
       "description": "Customer support",
       "hours": "0.50"
+    },
+    {
+      "id": "mrbtcfo673ki",
+      "date": "2026-07-07",
+      "timeIn": "23:35",
+      "timeOut": "23:55",
+      "description": "Customer support",
+      "hours": "0.33"
+    },
+    {
+      "id": "mrbtd89hq48k",
+      "date": "2026-07-08",
+      "timeIn": "16:25",
+      "timeOut": "17:00",
+      "description": "Order processing",
+      "hours": "0.58"
     }
   ],
   "invoices": [
