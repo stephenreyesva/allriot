@@ -599,6 +599,14 @@
       "timeOut": "18:05",
       "description": "Order Processing and customer support",
       "hours": "0.92"
+    },
+    {
+      "id": "mrf40eusfp2d",
+      "date": "2026-07-10",
+      "timeIn": "23:40",
+      "timeOut": "23:55",
+      "description": "Customer support",
+      "hours": "0.25"
     }
   ],
   "invoices": [
