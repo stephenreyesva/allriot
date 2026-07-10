@@ -580,17 +580,25 @@
       "id": "mrbtd89hq48k",
       "date": "2026-07-08",
       "timeIn": "16:25",
-      "timeOut": "17:00",
+      "timeOut": "17:05",
       "description": "Order processing",
-      "hours": "0.58"
+      "hours": "0.67"
     },
     {
       "id": "mrdmjn0yy7l0",
       "date": "2026-07-09",
       "timeIn": "22:45",
-      "timeOut": "23:15",
+      "timeOut": "23:20",
       "description": "Customer support",
-      "hours": "0.50"
+      "hours": "0.58"
+    },
+    {
+      "id": "mrepxsj7mqv3",
+      "date": "2026-07-10",
+      "timeIn": "17:10",
+      "timeOut": "18:05",
+      "description": "Order Processing and customer support",
+      "hours": "0.92"
     }
   ],
   "invoices": [
