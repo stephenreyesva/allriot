@@ -609,12 +609,12 @@
       "hours": "0.75"
     },
     {
-      "id": "mrj10iwl3rq7",
-      "date": "2026-07-11",
-      "timeIn": "21:00",
-      "timeOut": "21:15",
-      "description": "customer support",
-      "hours": "0.25"
+      "id": "mrj2kv67mlvr",
+      "date": "2026-07-13",
+      "timeIn": "18:15",
+      "timeOut": "18:40",
+      "description": "Order processing",
+      "hours": "0.42"
     }
   ],
   "invoices": [
