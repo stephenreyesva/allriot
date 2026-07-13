@@ -615,6 +615,14 @@
       "timeOut": "18:40",
       "description": "Order processing",
       "hours": "0.42"
+    },
+    {
+      "id": "mrj38bh1thgu",
+      "date": "2026-07-11",
+      "timeIn": "21:00",
+      "timeOut": "21:15",
+      "description": "Customer support",
+      "hours": "0.25"
     }
   ],
   "invoices": [
