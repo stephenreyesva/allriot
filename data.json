@@ -607,6 +607,14 @@
       "timeOut": "17:35",
       "description": "EU Label and Customer Service",
       "hours": "0.75"
+    },
+    {
+      "id": "mrj10iwl3rq7",
+      "date": "2026-07-11",
+      "timeIn": "21:00",
+      "timeOut": "21:15",
+      "description": "customer support",
+      "hours": "0.25"
     }
   ],
   "invoices": [
