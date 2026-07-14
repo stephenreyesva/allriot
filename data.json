@@ -631,6 +631,14 @@
       "timeOut": "00:55",
       "description": "customer support",
       "hours": "0.17"
+    },
+    {
+      "id": "mrk15cbu7i1m",
+      "date": "2026-07-14",
+      "timeIn": "10:25",
+      "timeOut": "10:40",
+      "description": "customer support",
+      "hours": "0.25"
     }
   ],
   "invoices": [
