@@ -647,6 +647,22 @@
       "timeOut": "23:45",
       "description": "customer support and poster order processing",
       "hours": "0.58"
+    },
+    {
+      "id": "mrm6prq53la5",
+      "date": "2026-07-15",
+      "timeIn": "16:30",
+      "timeOut": "16:50",
+      "description": "Order processing",
+      "hours": "0.33"
+    },
+    {
+      "id": "mrm6qbx5ou5h",
+      "date": "2026-07-15",
+      "timeIn": "22:35",
+      "timeOut": "23:05",
+      "description": "Customer support",
+      "hours": "0.50"
     }
   ],
   "invoices": [
