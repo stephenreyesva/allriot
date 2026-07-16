@@ -663,6 +663,14 @@
       "timeOut": "23:05",
       "description": "Customer support",
       "hours": "0.50"
+    },
+    {
+      "id": "mrn9d6ln3gri",
+      "date": "2026-07-16",
+      "timeIn": "16:35",
+      "timeOut": "17:15",
+      "description": "Customer support",
+      "hours": "0.67"
     }
   ],
   "invoices": [
