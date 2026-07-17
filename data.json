@@ -671,6 +671,14 @@
       "timeOut": "17:15",
       "description": "Customer support",
       "hours": "0.67"
+    },
+    {
+      "id": "mroorqx66qa0",
+      "date": "2026-07-17",
+      "timeIn": "16:30",
+      "timeOut": "17:25",
+      "description": "Order processing, EU Label & Customer support",
+      "hours": "0.92"
     }
   ],
   "invoices": [
