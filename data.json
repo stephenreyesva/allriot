@@ -708,9 +708,17 @@
       "id": "mrueiafyprel",
       "date": "2026-07-21",
       "timeIn": "16:35",
-      "timeOut": "16:45",
+      "timeOut": "16:50",
       "description": "Customer support",
-      "hours": "0.17"
+      "hours": "0.25"
+    },
+    {
+      "id": "mrvtrek4i0yw",
+      "date": "2026-07-22",
+      "timeIn": "16:30",
+      "timeOut": "16:55",
+      "description": "Order Processing",
+      "hours": "0.42"
     }
   ],
   "invoices": [
