@@ -716,9 +716,17 @@
       "id": "mrvtrek4i0yw",
       "date": "2026-07-22",
       "timeIn": "16:30",
-      "timeOut": "16:55",
+      "timeOut": "17:10",
       "description": "Order Processing",
-      "hours": "0.42"
+      "hours": "0.67"
+    },
+    {
+      "id": "mrwda0hrolnz",
+      "date": "2026-07-23",
+      "timeIn": "01:25",
+      "timeOut": "01:40",
+      "description": "Customer support",
+      "hours": "0.25"
     }
   ],
   "invoices": [
