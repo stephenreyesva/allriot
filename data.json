@@ -727,6 +727,14 @@
       "timeOut": "01:40",
       "description": "Customer support",
       "hours": "0.25"
+    },
+    {
+      "id": "mrxae8dkandp",
+      "date": "2026-07-23",
+      "timeIn": "17:05",
+      "timeOut": "17:30",
+      "description": "customer support",
+      "hours": "0.42"
     }
   ],
   "invoices": [
