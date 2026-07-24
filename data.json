@@ -823,7 +823,7 @@
       "paypalFee": 3.01,
       "phpRateOnDate": 58.95652,
       "phpRateDate": "2026-07-20",
-      "status": "sent",
+      "status": "paid",
       "notes": "",
       "total": 58.91
     }
