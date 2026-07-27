@@ -751,6 +751,22 @@
       "timeOut": "18:55",
       "description": "order processing",
       "hours": "0.67"
+    },
+    {
+      "id": "ms303pn260xg",
+      "date": "2026-07-27",
+      "timeIn": "17:00",
+      "timeOut": "17:50",
+      "description": "Customer support and Order processing",
+      "hours": "0.83"
+    },
+    {
+      "id": "ms304l652xuh",
+      "date": "2026-07-26",
+      "timeIn": "15:15",
+      "timeOut": "15:40",
+      "description": "Customer support",
+      "hours": "0.42"
     }
   ],
   "invoices": [
