@@ -767,6 +767,14 @@
       "timeOut": "15:40",
       "description": "Customer support",
       "hours": "0.42"
+    },
+    {
+      "id": "ms4etgrlffo5",
+      "date": "2026-07-28",
+      "timeIn": "16:40",
+      "timeOut": "17:10",
+      "description": "Customer support",
+      "hours": "0.50"
     }
   ],
   "invoices": [
