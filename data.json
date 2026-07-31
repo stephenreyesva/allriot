@@ -783,6 +783,22 @@
       "timeOut": "17:45",
       "description": "Order Processing and customer support",
       "hours": "1.17"
+    },
+    {
+      "id": "ms7d2m95x2o8",
+      "date": "2026-07-30",
+      "timeIn": "18:15",
+      "timeOut": "18:45",
+      "description": "Customer Support",
+      "hours": "0.50"
+    },
+    {
+      "id": "ms8p8uplzz0r",
+      "date": "2026-07-31",
+      "timeIn": "16:45",
+      "timeOut": "17:30",
+      "description": "Order Processing and Customer support",
+      "hours": "0.75"
     }
   ],
   "invoices": [
