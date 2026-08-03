@@ -799,6 +799,14 @@
       "timeOut": "17:30",
       "description": "Order Processing and Customer support",
       "hours": "0.75"
+    },
+    {
+      "id": "mscziub08mqb",
+      "date": "2026-08-03",
+      "timeIn": "16:40",
+      "timeOut": "17:25",
+      "description": "Order Processing, EU Labels",
+      "hours": "0.75"
     }
   ],
   "invoices": [
