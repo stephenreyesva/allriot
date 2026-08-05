@@ -804,9 +804,25 @@
       "id": "mscziub08mqb",
       "date": "2026-08-03",
       "timeIn": "16:40",
-      "timeOut": "17:25",
-      "description": "Order Processing, EU Labels",
-      "hours": "0.75"
+      "timeOut": "17:30",
+      "description": "Order Processing, EU Labels and customer support",
+      "hours": "0.83"
+    },
+    {
+      "id": "msef2xhgc7b1",
+      "date": "2026-08-04",
+      "timeIn": "16:45",
+      "timeOut": "17:10",
+      "description": "Customer support",
+      "hours": "0.42"
+    },
+    {
+      "id": "msftrlscckd5",
+      "date": "2026-08-05",
+      "timeIn": "16:25",
+      "timeOut": "17:05",
+      "description": "Order Processing",
+      "hours": "0.67"
     }
   ],
   "invoices": [
@@ -882,6 +898,20 @@
       "status": "paid",
       "notes": "",
       "total": 58.91
+    },
+    {
+      "id": "msfts0qv8mm5",
+      "number": "INV-006",
+      "label": "July 16–31, 2026",
+      "invoiceDate": "2026-08-05",
+      "hours": 9.52,
+      "subtotal": 47.599999999999994,
+      "paypalFee": 2.63,
+      "phpRateOnDate": 58.37336,
+      "phpRateDate": "2026-08-05",
+      "status": "draft",
+      "notes": "",
+      "total": 50.23
     }
   ]
 }
