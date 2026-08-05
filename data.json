@@ -812,17 +812,17 @@
       "id": "msef2xhgc7b1",
       "date": "2026-08-04",
       "timeIn": "16:45",
-      "timeOut": "17:10",
+      "timeOut": "17:15",
       "description": "Customer support",
-      "hours": "0.42"
+      "hours": "0.50"
     },
     {
       "id": "msftrlscckd5",
       "date": "2026-08-05",
       "timeIn": "16:25",
-      "timeOut": "17:05",
+      "timeOut": "16:55",
       "description": "Order Processing",
-      "hours": "0.67"
+      "hours": "0.50"
     }
   ],
   "invoices": [
