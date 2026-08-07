@@ -831,6 +831,22 @@
       "timeOut": "19:00",
       "description": "order processing ",
       "hours": "0.50"
+    },
+    {
+      "id": "msh9x6hznlro",
+      "date": "2026-08-06",
+      "timeIn": "16:45",
+      "timeOut": "17:05",
+      "description": "customer support",
+      "hours": "0.33"
+    },
+    {
+      "id": "msipglc2t3vo",
+      "date": "2026-08-07",
+      "timeIn": "16:50",
+      "timeOut": "17:30",
+      "description": "Order Processing, Customer support",
+      "hours": "0.67"
     }
   ],
   "invoices": [
