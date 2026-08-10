@@ -847,6 +847,14 @@
       "timeOut": "17:30",
       "description": "Order Processing, Customer support",
       "hours": "0.67"
+    },
+    {
+      "id": "msmzjkx16fri",
+      "date": "2026-08-10",
+      "timeIn": "16:40",
+      "timeOut": "17:20",
+      "description": "Order Processing and Customer support",
+      "hours": "0.67"
     }
   ],
   "invoices": [
