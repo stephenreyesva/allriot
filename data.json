@@ -804,9 +804,9 @@
       "id": "mscziub08mqb",
       "date": "2026-08-03",
       "timeIn": "16:40",
-      "timeOut": "17:30",
+      "timeOut": "17:35",
       "description": "Order Processing, EU Labels and customer support",
-      "hours": "0.83"
+      "hours": "0.92"
     },
     {
       "id": "msef2xhgc7b1",
@@ -844,17 +844,33 @@
       "id": "msipglc2t3vo",
       "date": "2026-08-07",
       "timeIn": "16:50",
-      "timeOut": "17:30",
+      "timeOut": "17:40",
       "description": "Order Processing, Customer support",
-      "hours": "0.67"
+      "hours": "0.83"
     },
     {
       "id": "msmzjkx16fri",
       "date": "2026-08-10",
       "timeIn": "16:40",
-      "timeOut": "17:20",
+      "timeOut": "17:35",
       "description": "Order Processing and Customer support",
-      "hours": "0.67"
+      "hours": "0.92"
+    },
+    {
+      "id": "msofgra4uqf6",
+      "date": "2026-08-11",
+      "timeIn": "16:55",
+      "timeOut": "17:15",
+      "description": "Customer Support",
+      "hours": "0.33"
+    },
+    {
+      "id": "mspu5z7djspr",
+      "date": "2026-08-12",
+      "timeIn": "16:30",
+      "timeOut": "17:25",
+      "description": "Order Processing, Customer support",
+      "hours": "0.92"
     }
   ],
   "invoices": [
