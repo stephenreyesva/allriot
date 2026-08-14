@@ -820,17 +820,17 @@
       "id": "msftrlscckd5",
       "date": "2026-08-05",
       "timeIn": "16:25",
-      "timeOut": "17:00",
+      "timeOut": "17:05",
       "description": "Order Processing and customer support",
-      "hours": "0.58"
+      "hours": "0.67"
     },
     {
       "id": "msfy7zvaovua",
       "date": "2026-08-05",
       "timeIn": "18:30",
-      "timeOut": "19:00",
-      "description": "order processing ",
-      "hours": "0.50"
+      "timeOut": "19:05",
+      "description": "order processing (issue with excel)",
+      "hours": "0.58"
     },
     {
       "id": "msh9x6hznlro",
@@ -844,9 +844,9 @@
       "id": "msipglc2t3vo",
       "date": "2026-08-07",
       "timeIn": "16:50",
-      "timeOut": "17:40",
+      "timeOut": "17:45",
       "description": "Order Processing, Customer support",
-      "hours": "0.83"
+      "hours": "0.92"
     },
     {
       "id": "msmzjkx16fri",
@@ -859,10 +859,10 @@
     {
       "id": "msofgra4uqf6",
       "date": "2026-08-11",
-      "timeIn": "16:55",
+      "timeIn": "16:50",
       "timeOut": "17:15",
       "description": "Customer Support",
-      "hours": "0.33"
+      "hours": "0.42"
     },
     {
       "id": "mspu5z7djspr",
@@ -871,6 +871,38 @@
       "timeOut": "17:25",
       "description": "Order Processing, Customer support",
       "hours": "0.92"
+    },
+    {
+      "id": "mssp1njj437u",
+      "date": "2026-08-13",
+      "timeIn": "16:30",
+      "timeOut": "16:45",
+      "description": "Customer Support",
+      "hours": "0.25"
+    },
+    {
+      "id": "mssp29amzwwp",
+      "date": "2026-08-14",
+      "timeIn": "16:20",
+      "timeOut": "17:20",
+      "description": "Order Processing and Customer support",
+      "hours": "1.00"
+    },
+    {
+      "id": "mssq0948rfn3",
+      "date": "2026-08-08",
+      "timeIn": "10:20",
+      "timeOut": "10:40",
+      "description": "Customer Support",
+      "hours": "0.33"
+    },
+    {
+      "id": "mssq0lpj8g26",
+      "date": "2026-08-01",
+      "timeIn": "09:55",
+      "timeOut": "10:20",
+      "description": "Customer Support",
+      "hours": "0.42"
     }
   ],
   "invoices": [
