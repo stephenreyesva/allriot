@@ -835,10 +835,10 @@
     {
       "id": "msh9x6hznlro",
       "date": "2026-08-06",
-      "timeIn": "16:45",
-      "timeOut": "17:10",
+      "timeIn": "16:40",
+      "timeOut": "17:15",
       "description": "customer support",
-      "hours": "0.42"
+      "hours": "0.58"
     },
     {
       "id": "msipglc2t3vo",
@@ -860,9 +860,9 @@
       "id": "msofgra4uqf6",
       "date": "2026-08-11",
       "timeIn": "16:50",
-      "timeOut": "17:15",
+      "timeOut": "17:20",
       "description": "Customer Support",
-      "hours": "0.42"
+      "hours": "0.50"
     },
     {
       "id": "mspu5z7djspr",
@@ -875,10 +875,10 @@
     {
       "id": "mssp1njj437u",
       "date": "2026-08-13",
-      "timeIn": "16:30",
+      "timeIn": "16:25",
       "timeOut": "16:45",
       "description": "Customer Support",
-      "hours": "0.25"
+      "hours": "0.33"
     },
     {
       "id": "mssp29amzwwp",
@@ -903,6 +903,22 @@
       "timeOut": "10:20",
       "description": "Customer Support",
       "hours": "0.42"
+    },
+    {
+      "id": "mssq3nzr191t",
+      "date": "2026-08-15",
+      "timeIn": "11:25",
+      "timeOut": "11:55",
+      "description": "",
+      "hours": "0.50"
+    },
+    {
+      "id": "msx05rxk94mt",
+      "date": "2026-08-17",
+      "timeIn": "16:40",
+      "timeOut": "17:45",
+      "description": "Order Processing with posters (GELATO) and customer support",
+      "hours": "1.08"
     }
   ],
   "invoices": [
