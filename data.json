@@ -919,6 +919,14 @@
       "timeOut": "17:45",
       "description": "Order Processing with posters (GELATO) and customer support",
       "hours": "1.08"
+    },
+    {
+      "id": "msytev1spx8j",
+      "date": "2026-08-18",
+      "timeIn": "23:05",
+      "timeOut": "23:55",
+      "description": "Customer Support and EU Labels",
+      "hours": "0.83"
     }
   ],
   "invoices": [
@@ -1005,9 +1013,23 @@
       "paypalFee": 2.63,
       "phpRateOnDate": 58.37336,
       "phpRateDate": "2026-08-05",
-      "status": "sent",
+      "status": "paid",
       "notes": "",
       "total": 50.23
+    },
+    {
+      "id": "msytdlq9sacd",
+      "number": "INV-007",
+      "label": "August 1–15, 2026",
+      "invoiceDate": "2026-08-18",
+      "hours": 9.09,
+      "subtotal": 45.45,
+      "paypalFee": 2.54,
+      "phpRateOnDate": 58.84179999999999,
+      "phpRateDate": "2026-08-18",
+      "status": "sent",
+      "notes": "",
+      "total": 47.99
     }
   ]
 }
