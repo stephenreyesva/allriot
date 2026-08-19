@@ -927,6 +927,14 @@
       "timeOut": "23:55",
       "description": "Customer Support and EU Labels",
       "hours": "0.83"
+    },
+    {
+      "id": "mszu88ayvniw",
+      "date": "2026-08-19",
+      "timeIn": "16:30",
+      "timeOut": "17:25",
+      "description": "Order Processing incl. Poster and Customer support",
+      "hours": "0.92"
     }
   ],
   "invoices": [
