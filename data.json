@@ -935,6 +935,14 @@
       "timeOut": "17:25",
       "description": "Order Processing incl. Poster and Customer support",
       "hours": "0.92"
+    },
+    {
+      "id": "mt1nocs9hfi9",
+      "date": "2026-08-20",
+      "timeIn": "23:00",
+      "timeOut": "23:25",
+      "description": "Customer Support",
+      "hours": "0.42"
     }
   ],
   "invoices": [
