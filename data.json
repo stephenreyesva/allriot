@@ -967,6 +967,30 @@
       "timeOut": "09:30",
       "description": "Customer Support",
       "hours": "0.25"
+    },
+    {
+      "id": "mt8f9knetuqv",
+      "date": "2026-08-25",
+      "timeIn": "16:25",
+      "timeOut": "17:00",
+      "description": "Customer SUpport",
+      "hours": "0.58"
+    },
+    {
+      "id": "mt9ug418irec",
+      "date": "2026-08-26",
+      "timeIn": "16:30",
+      "timeOut": "17:30",
+      "description": "Order processing and customer support",
+      "hours": "1.00"
+    },
+    {
+      "id": "mtbpmtzfqvgf",
+      "date": "2026-08-27",
+      "timeIn": "21:10",
+      "timeOut": "21:25",
+      "description": "Customer Support",
+      "hours": "0.25"
     }
   ],
   "invoices": [
