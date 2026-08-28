@@ -987,10 +987,18 @@
     {
       "id": "mtbpmtzfqvgf",
       "date": "2026-08-27",
-      "timeIn": "21:10",
-      "timeOut": "21:25",
+      "timeIn": "23:10",
+      "timeOut": "23:25",
       "description": "Customer Support",
       "hours": "0.25"
+    },
+    {
+      "id": "mtcod35xug5z",
+      "date": "2026-08-28",
+      "timeIn": "16:00",
+      "timeOut": "16:55",
+      "description": "Customer Support, Order processing & EU Labels",
+      "hours": "0.92"
     }
   ],
   "invoices": [
