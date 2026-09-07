@@ -948,17 +948,17 @@
       "id": "mt2p9hfdjky5",
       "date": "2026-08-21",
       "timeIn": "16:25",
-      "timeOut": "17:10",
+      "timeOut": "17:20",
       "description": "Order Processing and Customer support",
-      "hours": "0.75"
+      "hours": "0.92"
     },
     {
       "id": "mt6z7sn2n562",
       "date": "2026-08-24",
       "timeIn": "16:25",
-      "timeOut": "17:15",
+      "timeOut": "17:20",
       "description": "Order Processing and Customer support",
-      "hours": "0.83"
+      "hours": "0.92"
     },
     {
       "id": "mt6zweavlock",
@@ -996,8 +996,56 @@
       "id": "mtcod35xug5z",
       "date": "2026-08-28",
       "timeIn": "16:00",
-      "timeOut": "16:55",
+      "timeOut": "17:00",
       "description": "Customer Support, Order processing & EU Labels",
+      "hours": "1.00"
+    },
+    {
+      "id": "mtgz24jr9a7a",
+      "date": "2026-08-31",
+      "timeIn": "16:15",
+      "timeOut": "17:15",
+      "description": "Order Processing with Posters and Customer Support",
+      "hours": "1.00"
+    },
+    {
+      "id": "mtiez2m74z99",
+      "date": "2026-09-01",
+      "timeIn": "16:25",
+      "timeOut": "16:55",
+      "description": "EU Shipping Labels and Customer support",
+      "hours": "0.50"
+    },
+    {
+      "id": "mtju9ftpkt2i",
+      "date": "2026-09-02",
+      "timeIn": "16:15",
+      "timeOut": "17:15",
+      "description": "Order Processing and Customer support",
+      "hours": "1.00"
+    },
+    {
+      "id": "mtmqdwcm7xvb",
+      "date": "2026-09-04",
+      "timeIn": "16:55",
+      "timeOut": "17:55",
+      "description": "Order Processing and Customer Support",
+      "hours": "1.00"
+    },
+    {
+      "id": "mtqzjc52yx3e",
+      "date": "2026-09-03",
+      "timeIn": "09:10",
+      "timeOut": "09:30",
+      "description": "Customer Support",
+      "hours": "0.33"
+    },
+    {
+      "id": "mtqzjwrqik4c",
+      "date": "2026-09-07",
+      "timeIn": "16:20",
+      "timeOut": "17:15",
+      "description": "Order Processing and Customer Support",
       "hours": "0.92"
     }
   ],
@@ -1099,9 +1147,23 @@
       "paypalFee": 2.54,
       "phpRateOnDate": 58.84179999999999,
       "phpRateDate": "2026-08-18",
-      "status": "sent",
+      "status": "paid",
       "notes": "",
       "total": 47.99
+    },
+    {
+      "id": "mtr0b44547oa",
+      "number": "INV-008",
+      "label": "August 16–31, 2026",
+      "invoiceDate": "2026-09-07",
+      "hours": 9.17,
+      "subtotal": 45.85,
+      "paypalFee": 2.55,
+      "phpRateOnDate": 59.97944,
+      "phpRateDate": "2026-09-07",
+      "status": "draft",
+      "notes": "",
+      "total": 48.4
     }
   ]
 }
