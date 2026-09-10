@@ -1047,6 +1047,14 @@
       "timeOut": "17:15",
       "description": "Order Processing and Customer Support",
       "hours": "0.92"
+    },
+    {
+      "id": "mttudufivrf4",
+      "date": "2026-09-09",
+      "timeIn": "16:20",
+      "timeOut": "17:35",
+      "description": "Order Processing, Customer Support and Eu Labels",
+      "hours": "1.25"
     }
   ],
   "invoices": [
