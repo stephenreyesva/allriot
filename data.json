@@ -1111,6 +1111,22 @@
       "timeOut": "16:50",
       "description": "Customer support",
       "hours": "0.58"
+    },
+    {
+      "id": "mu9zvafgl9tl",
+      "date": "2026-09-18",
+      "timeIn": "17:35",
+      "timeOut": "18:15",
+      "description": "Order Processing",
+      "hours": "0.67"
+    },
+    {
+      "id": "mu9zwkxibt90",
+      "date": "2026-09-20",
+      "timeIn": "21:20",
+      "timeOut": "21:40",
+      "description": "Customer Support",
+      "hours": "0.33"
     }
   ],
   "invoices": [
