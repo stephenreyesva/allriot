@@ -1151,6 +1151,22 @@
       "timeOut": "17:25",
       "description": "Order processing and customer support",
       "hours": "1.00"
+    },
+    {
+      "id": "muwfnd7j2dst",
+      "date": "2026-10-01",
+      "timeIn": "16:30",
+      "timeOut": "16:50",
+      "description": "Customer support",
+      "hours": "0.33"
+    },
+    {
+      "id": "muwfnv7lbkeb",
+      "date": "2026-10-03",
+      "timeIn": "16:15",
+      "timeOut": "16:25",
+      "description": "Customer support",
+      "hours": "0.17"
     }
   ],
   "invoices": [
