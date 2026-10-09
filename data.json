@@ -1175,6 +1175,14 @@
       "timeOut": "17:15",
       "description": "Customer support and or Order Processing",
       "hours": "0.92"
+    },
+    {
+      "id": "mv0rt5au82ag",
+      "date": "2026-10-09",
+      "timeIn": "16:30",
+      "timeOut": "17:35",
+      "description": "Customer support, Order processing and EU Shipping Labels",
+      "hours": "1.08"
     }
   ],
   "invoices": [
