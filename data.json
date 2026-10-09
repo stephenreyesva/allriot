@@ -1183,6 +1183,54 @@
       "timeOut": "17:35",
       "description": "Customer support, Order processing and EU Shipping Labels",
       "hours": "1.08"
+    },
+    {
+      "id": "mv0ruiyppkrp",
+      "date": "2026-09-23",
+      "timeIn": "16:25",
+      "timeOut": "17:25",
+      "description": "Customer Support and Order processing",
+      "hours": "1.00"
+    },
+    {
+      "id": "mv0rut2dhk04",
+      "date": "2026-09-25",
+      "timeIn": "16:15",
+      "timeOut": "17:10",
+      "description": "Customer Support and Order processing",
+      "hours": "0.92"
+    },
+    {
+      "id": "mv0rv8jzv3qs",
+      "date": "2026-09-24",
+      "timeIn": "16:25",
+      "timeOut": "16:35",
+      "description": "customer support",
+      "hours": "0.17"
+    },
+    {
+      "id": "mv0rvrny71wy",
+      "date": "2026-09-28",
+      "timeIn": "16:25",
+      "timeOut": "17:40",
+      "description": "Order processing (Manual)",
+      "hours": "1.25"
+    },
+    {
+      "id": "mv0rwsr6ofw7",
+      "date": "2026-09-29",
+      "timeIn": "16:15",
+      "timeOut": "16:30",
+      "description": "Customer support",
+      "hours": "0.25"
+    },
+    {
+      "id": "mv0rxifjlb0v",
+      "date": "2026-09-30",
+      "timeIn": "16:35",
+      "timeOut": "17:30",
+      "description": "Customer Support and Order processing",
+      "hours": "0.92"
     }
   ],
   "invoices": [
