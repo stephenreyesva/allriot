@@ -1370,6 +1370,20 @@
       "status": "paid",
       "notes": "",
       "total": 42.760000000000005
+    },
+    {
+      "id": "mv0s76dyvcy2",
+      "number": "INV-010",
+      "label": "September 16–30, 2026",
+      "invoiceDate": "2026-10-09",
+      "hours": 8.59,
+      "subtotal": 42.95,
+      "paypalFee": 2.42,
+      "phpRateOnDate": 60.227999999999994,
+      "phpRateDate": "2026-10-09",
+      "status": "draft",
+      "notes": "",
+      "total": 45.370000000000005
     }
   ]
 }
