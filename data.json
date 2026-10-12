@@ -1381,7 +1381,7 @@
       "paypalFee": 2.42,
       "phpRateOnDate": 60.227999999999994,
       "phpRateDate": "2026-10-09",
-      "status": "draft",
+      "status": "paid",
       "notes": "",
       "total": 45.370000000000005
     }
