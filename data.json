@@ -1255,6 +1255,14 @@
       "timeOut": "17:35",
       "description": "Customer Support, Order Processing, Posters and EU Label",
       "hours": "1.25"
+    },
+    {
+      "id": "mv7uljl9nvj5",
+      "date": "2026-10-14",
+      "timeIn": "16:20",
+      "timeOut": "17:20",
+      "description": "Customer Support, Order processing",
+      "hours": "1.00"
     }
   ],
   "invoices": [
