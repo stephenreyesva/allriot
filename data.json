@@ -1263,6 +1263,38 @@
       "timeOut": "17:20",
       "description": "Customer Support, Order processing",
       "hours": "1.00"
+    },
+    {
+      "id": "mvezt9suj06b",
+      "date": "2026-10-15",
+      "timeIn": "16:20",
+      "timeOut": "16:35",
+      "description": "customer support",
+      "hours": "0.25"
+    },
+    {
+      "id": "mveztvfmmpcu",
+      "date": "2026-10-13",
+      "timeIn": "16:30",
+      "timeOut": "16:40",
+      "description": "customer support",
+      "hours": "0.17"
+    },
+    {
+      "id": "mvezxn2ymmnj",
+      "date": "2026-10-16",
+      "timeIn": "16:20",
+      "timeOut": "17:30",
+      "description": "Order processing and customer support, Eu Label",
+      "hours": "1.17"
+    },
+    {
+      "id": "mvezy6wwsd6r",
+      "date": "2026-10-19",
+      "timeIn": "16:20",
+      "timeOut": "17:15",
+      "description": "Order Processing and Customer support",
+      "hours": "0.92"
     }
   ],
   "invoices": [
