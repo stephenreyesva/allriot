@@ -1303,6 +1303,22 @@
       "timeOut": "23:15",
       "description": "Customer support",
       "hours": "0.25"
+    },
+    {
+      "id": "mvkq1sxbi9pv",
+      "date": "2026-10-21",
+      "timeIn": "16:20",
+      "timeOut": "17:15",
+      "description": "customer support and order processing",
+      "hours": "0.92"
+    },
+    {
+      "id": "mvkq2chxubam",
+      "date": "2026-10-23",
+      "timeIn": "16:20",
+      "timeOut": "17:10",
+      "description": "customer support and order processing",
+      "hours": "0.83"
     }
   ],
   "invoices": [
