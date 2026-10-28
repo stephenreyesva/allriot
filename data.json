@@ -1335,6 +1335,14 @@
       "timeOut": "17:05",
       "description": "order processing and customer support",
       "hours": "0.92"
+    },
+    {
+      "id": "mvs97kwy1nrj",
+      "date": "2026-10-28",
+      "timeIn": "23:05",
+      "timeOut": "23:30",
+      "description": "Setting up the for new task",
+      "hours": "0.42"
     }
   ],
   "invoices": [
