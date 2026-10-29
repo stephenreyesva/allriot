@@ -1343,6 +1343,14 @@
       "timeOut": "23:30",
       "description": "Setting up the for new task",
       "hours": "0.42"
+    },
+    {
+      "id": "mvtp8cxx8ijz",
+      "date": "2026-10-29",
+      "timeIn": "23:30",
+      "timeOut": "23:50",
+      "description": "Setting up new task",
+      "hours": "0.33"
     }
   ],
   "invoices": [
