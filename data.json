@@ -1351,6 +1351,14 @@
       "timeOut": "23:50",
       "description": "Setting up new task",
       "hours": "0.33"
+    },
+    {
+      "id": "mvuqccwez8rn",
+      "date": "2026-10-30",
+      "timeIn": "16:20",
+      "timeOut": "17:50",
+      "description": "Order processing and customer support, setting up for new task.",
+      "hours": "1.50"
     }
   ],
   "invoices": [
