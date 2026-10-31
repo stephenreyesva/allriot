@@ -1367,6 +1367,14 @@
       "timeOut": "00:35",
       "description": "Task 1,",
       "hours": "0.58"
+    },
+    {
+      "id": "mvwbl2dnxory",
+      "date": "2026-10-31",
+      "timeIn": "19:20",
+      "timeOut": "21:05",
+      "description": "uploading of image in the new website",
+      "hours": "1.75"
     }
   ],
   "invoices": [
