@@ -1383,6 +1383,14 @@
       "timeOut": "17:05",
       "description": "Customer support and order processing",
       "hours": "0.83"
+    },
+    {
+      "id": "mw1uu9mn7b8c",
+      "date": "2026-11-04",
+      "timeIn": "16:10",
+      "timeOut": "17:10",
+      "description": "Customer support and order processing with spark order",
+      "hours": "1.00"
     }
   ],
   "invoices": [
