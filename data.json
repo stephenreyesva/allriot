@@ -1550,6 +1550,20 @@
       "status": "paid",
       "notes": "",
       "total": 39.68
+    },
+    {
+      "id": "mw3qacoleyow",
+      "number": "INV-012",
+      "label": "October 16–31, 2026",
+      "invoiceDate": "2026-11-05",
+      "hours": 10.84,
+      "subtotal": 54.2,
+      "paypalFee": 2.93,
+      "phpRateOnDate": 60.686879999999995,
+      "phpRateDate": "2026-11-05",
+      "status": "sent",
+      "notes": "",
+      "total": 57.13
     }
   ]
 }
