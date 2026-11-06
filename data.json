@@ -1391,6 +1391,14 @@
       "timeOut": "17:10",
       "description": "Customer support and order processing with spark order",
       "hours": "1.00"
+    },
+    {
+      "id": "mw4pi72uheja",
+      "date": "2026-11-06",
+      "timeIn": "16:10",
+      "timeOut": "17:05",
+      "description": "Order processing and EU Shipping label",
+      "hours": "0.92"
     }
   ],
   "invoices": [
