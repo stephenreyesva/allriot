@@ -1412,9 +1412,9 @@
       "id": "mwbv0vp97af2",
       "date": "2026-11-11",
       "timeIn": "16:20",
-      "timeOut": "17:00",
-      "description": "Order processing and Customer support",
-      "hours": "0.67"
+      "timeOut": "17:20",
+      "description": "Order processing (w/ Spark)  and Customer support",
+      "hours": "1.00"
     }
   ],
   "invoices": [
