@@ -1396,9 +1396,25 @@
       "id": "mw4pi72uheja",
       "date": "2026-11-06",
       "timeIn": "16:10",
-      "timeOut": "17:05",
+      "timeOut": "17:10",
       "description": "Order processing and EU Shipping label",
-      "hours": "0.92"
+      "hours": "1.00"
+    },
+    {
+      "id": "mwbv0ckoi3q0",
+      "date": "2026-11-09",
+      "timeIn": "16:10",
+      "timeOut": "17:15",
+      "description": "Order processing with (Posters) and Customer support",
+      "hours": "1.08"
+    },
+    {
+      "id": "mwbv0vp97af2",
+      "date": "2026-11-11",
+      "timeIn": "16:20",
+      "timeOut": "17:00",
+      "description": "Order processing and Customer support",
+      "hours": "0.67"
     }
   ],
   "invoices": [
@@ -1569,7 +1585,7 @@
       "paypalFee": 2.93,
       "phpRateOnDate": 60.686879999999995,
       "phpRateDate": "2026-11-05",
-      "status": "sent",
+      "status": "paid",
       "notes": "",
       "total": 57.13
     }
