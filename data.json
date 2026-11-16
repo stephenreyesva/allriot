@@ -1415,6 +1415,30 @@
       "timeOut": "17:20",
       "description": "Order processing (w/ Spark)  and Customer support",
       "hours": "1.00"
+    },
+    {
+      "id": "mwj05a67jdpt",
+      "date": "2026-11-13",
+      "timeIn": "16:20",
+      "timeOut": "17:30",
+      "description": "Order process (with Sparks & EU Label) and customer support",
+      "hours": "1.17"
+    },
+    {
+      "id": "mwj05weys6rz",
+      "date": "2026-11-16",
+      "timeIn": "16:25",
+      "timeOut": "17:40",
+      "description": "Order processing (With Posters) and customer support",
+      "hours": "1.25"
+    },
+    {
+      "id": "mwjhhh5cmlv8",
+      "date": "2026-11-17",
+      "timeIn": "00:20",
+      "timeOut": "00:40",
+      "description": "customer service",
+      "hours": "0.33"
     }
   ],
   "invoices": [
