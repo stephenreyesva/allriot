@@ -1380,9 +1380,9 @@
       "id": "mvyzrfbwtpz4",
       "date": "2026-11-02",
       "timeIn": "16:15",
-      "timeOut": "17:05",
+      "timeOut": "17:20",
       "description": "Customer support and order processing",
-      "hours": "0.83"
+      "hours": "1.08"
     },
     {
       "id": "mw1uu9mn7b8c",
@@ -1636,6 +1636,20 @@
       "status": "paid",
       "notes": "",
       "total": 57.13
+    },
+    {
+      "id": "mwt2og6ryoyx",
+      "number": "INV-013",
+      "label": "November 1–15, 2026",
+      "invoiceDate": "2026-11-23",
+      "hours": 6.33,
+      "subtotal": 31.65,
+      "paypalFee": 1.91,
+      "phpRateOnDate": 61.09795999999999,
+      "phpRateDate": "2026-11-23",
+      "status": "sent",
+      "notes": "",
+      "total": 33.559999999999995
     }
   ]
 }
